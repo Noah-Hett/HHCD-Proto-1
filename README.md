@@ -1,55 +1,30 @@
-# HHCD Report Atlas
+# HHCD visualisation workspace
 
-A small **pnpm workspace** for three people to ship different React visualisations of the same Helen Hamlyn Centre for Design report catalogue — with **public Vercel URLs**, not localhost.
+A **pnpm workspace** of independent Vite + React pages over the Helen Hamlyn Centre for Design graduate/associate report catalogue (62 reports). One Vercel project hosts the hub plus every visualisation. Pull requests get a preview URL automatically.
 
-One Vercel project hosts the hub plus every visualisation. Pull requests get their own preview URL automatically, so people who cannot run a local server can still open the work in a browser.
+## Shape
 
-## Why this shape
-
-| Need | Choice |
-| --- | --- |
-| Three different visualisations, different goals | One repo, one app per folder under `apps/` |
-| Same dataset for everyone | Shared `@hhcd/data` package (CSV + JSON) |
-| Teammates who cannot run a local server | Vercel production + PR preview URLs |
-| Avoid stepping on each other’s work | Edit only your app folder; shared code lives in `packages/` |
-
-Do **not** put three sites in one React app. Independent Vite apps can look completely different, fail independently, and still share data.
+The hub is `apps/gallery` (`/`). Every other visualisation is **its own React app** in `apps/<id>/`, live at `/<id>/`. That is the point: one page can be Three.js, another D3, another plain SVG. They share a dataset, not a runtime.
 
 ```
 apps/
-  gallery/        Hub page (the Vercel homepage)
-  overview/       Shared example visualisation — live at /overview/
-  _starter/       Copy this; not published
+  gallery/        Hub (Vercel homepage)
+  overview/       Example visualisation — /overview/
+  _starter/       Template; not published
   your-app/       Added with `pnpm new-app your-app`
 packages/
   data/           JSON catalogue imported as `@hhcd/data`
-  theme/          Shared paper/ink CSS tokens
+  theme/          Optional shared CSS tokens
+  shell/          Optional page chrome (`<Shell fill>` for full-bleed)
 data/
   hhcd-reports.csv
 ```
 
-Name apps after the **question they answer**, not after a person. People move; the visualisation is the unit of work.
+Name apps after the **question they answer**, not after a person.
 
-## One-time: connect Vercel
+## Add a visualisation (or ask an agent)
 
-Someone with access to this GitHub repo does this once. Teammates do **not** need Vercel accounts to *open* preview links.
-
-1. Go to [vercel.com/new](https://vercel.com/new) and import `Noah-Hett/HHCD-Proto-1`
-2. Keep **Root Directory** as the repo root (`.`)
-3. Leave build settings alone — `vercel.json` already sets:
-   - Install: `pnpm install --frozen-lockfile`
-   - Build: `pnpm build`
-   - Output: `dist`
-4. Deploy
-
-After that:
-
-- **Production** (`main`): `https://<project-name>.vercel.app/` and `/overview/`
-- **Every pull request**: Vercel comments a unique preview URL on the PR
-
-If the import wizard tries to treat this as a single Vite app, switch the framework to **Other** and keep the commands above. This repo is a workspace that builds several apps into one `dist/` folder.
-
-## Add a visualisation
+From the repo root:
 
 ```bash
 pnpm install
@@ -58,31 +33,51 @@ pnpm install
 pnpm --filter @hhcd/journey-map dev
 ```
 
-`new-app` copies `apps/_starter`, sets the package name, and adds a card to `apps/manifest.json` (title, goal, owner, status). Edit that JSON so the hub describes what you are actually making.
+`new-app` copies `apps/_starter` and adds a row to `apps/manifest.json`. Optional flags: `--title`, `--goal`, `--owner`. Both `pnpm new-app journey-map --title "..."` and `pnpm new-app -- journey-map --title "..."` work.
 
-If you cannot run Vite locally, skip `dev`: change the files, open a pull request, and use the Vercel preview link.
+If you cannot run Vite locally, skip `dev`: change the files, open a pull request, and use the Vercel preview.
+
+Teammates using a Cursor cloud agent can paste:
+
+```
+Add a new visualisation page to this HHCD platform.
+
+What I want: <describe the view, interactions, and question it answers>
+
+Follow AGENTS.md: run pnpm new-app with a kebab-case id, implement only in that app folder, update apps/manifest.json, add any libraries (d3, three, etc.) to that app only, then open a PR.
+```
+
+Longer notes: `docs/add-a-visualisation.md`.
+
+## One-time: connect Vercel
+
+Someone with access to this GitHub repo does this once. Teammates do **not** need Vercel accounts to open preview links.
+
+1. Import `Noah-Hett/HHCD-Proto-1` at [vercel.com/new](https://vercel.com/new)
+2. Root Directory: repo root (`.`)
+3. Leave build settings — `vercel.json` already sets install `pnpm install --frozen-lockfile`, build `pnpm build`, output `dist`
+4. Deploy
+
+Production is `https://<project>.vercel.app/` plus `/<app-id>/`. Each pull request gets a preview URL. If the wizard treats this as a single Vite app, set the framework to **Other**.
 
 ## Commands
 
 | Command | What it does |
 | --- | --- |
 | `pnpm install` | Install all workspace packages |
-| `pnpm dev:gallery` | Local hub (only if you *can* use localhost) |
-| `pnpm dev:overview` | Local example visualisation |
-| `pnpm --filter @hhcd/<app> dev` | Local one app |
-| `pnpm new-app <name>` | Scaffold a new app from `_starter` |
+| `pnpm new-app <id>` | Scaffold a new app from `_starter` |
+| `pnpm --filter @hhcd/<id> dev` | Local one app |
+| `pnpm --filter @hhcd/<id> add <pkg>` | Add a library to one app only |
 | `pnpm test` | Check the JSON catalogue still has 62 reports |
 | `pnpm build` | Build every published app into `dist/` |
 | `python3 scripts/csv-to-json.py` | Rebuild JSON after CSV edits |
 
 ## Data
 
-React apps should import from `@hhcd/data`, not parse the CSV in the browser.
-
-The CSV has **two columns both named `Methods [options]`**. In JSON they are `methodsPrimary` and `methodsSecondary`. Categories include both `Mobility and Transport` and `Transport`.
+Import from `@hhcd/data`, not the CSV in the browser. The CSV has **two columns both named `Methods [options]`**; JSON uses `methodsPrimary` and `methodsSecondary`. Categories include both `Mobility and Transport` and `Transport`.
 
 ## Working together
 
-- Keep unrelated experiments in separate app folders.
-- Open a pull request for each visualisation change. Vercel builds a preview; GitHub Actions also runs `pnpm test` and `pnpm build`.
-- If two people must change `@hhcd/data` or `@hhcd/theme`, talk first — those packages affect every visualisation.
+- Edit only your app folder. Shared code lives in `packages/`.
+- Open a pull request per visualisation. Vercel builds a preview; GitHub Actions runs `pnpm test` and `pnpm build`.
+- If two people must change `@hhcd/data`, `@hhcd/theme`, or `@hhcd/shell`, talk first.

@@ -1,0 +1,16 @@
+{
+  "name": "@hhcd/shell",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.jsx",
+    "./shell.css": "./src/shell.css"
+  },
+  "peerDependencies": {
+    "react": "^18.3.1"
+  },
+  "dependencies": {
+    "@hhcd/data": "workspace:*",
+    "@hhcd/theme": "workspace:*"
+  }
+}

@@ -1,15 +1,11 @@
 :root {
-  --paper: #f3eee4;
-  --paper-2: #e8e0d2;
-  --ink: #1b1814;
-  --ink-soft: #5c5348;
-  --rule: #cfc4b2;
-  --accent: #9c2b1a;
-  --accent-soft: #d9b2a8;
-  --chip: #fffaf2;
-  --serif: "Literata", "Iowan Old Style", Palatino, Georgia, serif;
-  --sans: "Figtree", "Avenir Next", "Segoe UI", sans-serif;
-  --max: 72rem;
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --text: #111;
+  --muted: #666;
+  --border: #e5e5e5;
+  --hover: #f0f0f0;
+  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 * {
@@ -24,10 +20,10 @@ body,
 }
 
 body {
-  background: var(--paper);
-  color: var(--ink);
-  font-family: var(--sans);
-  line-height: 1.5;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  line-height: 1.4;
 }
 
 a {
@@ -38,4 +34,5 @@ button,
 input,
 select {
   font: inherit;
+  border-radius: 0;
 }
