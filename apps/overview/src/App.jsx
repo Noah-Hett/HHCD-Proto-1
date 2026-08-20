@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { countBy, reports, yearRange } from "@hhcd/data";
+import { Shell } from "@hhcd/shell";
+import "@hhcd/shell/shell.css";
 
 export default function App() {
   const [category, setCategory] = useState("All");
@@ -25,95 +27,98 @@ export default function App() {
   const maxYear = Math.max(...years.map((item) => item.count), 1);
 
   return (
-    <div className="page">
-      <p className="back">
-        <a href="../">Report Atlas</a>
-      </p>
-      <header>
-        <p className="kicker">Shared example</p>
-        <h1>Dataset overview</h1>
-        <p className="lede">
-          {reports.length} reports, {categories.length} categories, {yearRange.min}
-          –{yearRange.max}. Filter the catalogue, then replace this app or copy
-          the starter to build a different view.
-        </p>
-      </header>
+    <Shell title="Dataset overview">
+      <div className="workspace">
+        <div className="stat-strip">
+          <span>
+            <b>{reports.length}</b> reports
+          </span>
+          <span>
+            <b>{categories.length}</b> categories
+          </span>
+          <span>
+            <b>
+              {yearRange.min}–{yearRange.max}
+            </b>
+          </span>
+        </div>
 
-      <section className="stats">
-        <article>
-          <h2>By category</h2>
-          <ul className="bars">
-            {categories.map((item) => (
-              <li key={item.label}>
-                <button
-                  className={category === item.label ? "active" : ""}
-                  onClick={() =>
-                    setCategory(category === item.label ? "All" : item.label)
-                  }
-                >
-                  <span className="label">{item.label}</span>
-                  <span
-                    className="bar"
-                    style={{ width: `${(item.count / maxCategory) * 100}%` }}
-                  />
-                  <span className="count">{item.count}</span>
-                </button>
+        <section className="stats">
+          <article>
+            <h2>By category</h2>
+            <ul className="bars">
+              {categories.map((item) => (
+                <li key={item.label}>
+                  <button
+                    className={category === item.label ? "active" : ""}
+                    onClick={() =>
+                      setCategory(category === item.label ? "All" : item.label)
+                    }
+                  >
+                    <span className="label">{item.label}</span>
+                    <span
+                      className="bar"
+                      style={{ width: `${(item.count / maxCategory) * 100}%` }}
+                    />
+                    <span className="count">{item.count}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </article>
+          <article>
+            <h2>By year</h2>
+            <div className="years" aria-hidden="true">
+              {years.map((item) => (
+                <span
+                  key={item.label}
+                  title={`${item.label}: ${item.count}`}
+                  style={{ height: `${8 + (item.count / maxYear) * 48}px` }}
+                />
+              ))}
+            </div>
+            <p className="year-range">
+              {yearRange.min} — {yearRange.max}
+            </p>
+            <h2>Project types</h2>
+            <p className="types">
+              {types.map((item) => (
+                <span key={item.label}>
+                  {item.label} {item.count}
+                </span>
+              ))}
+            </p>
+          </article>
+        </section>
+
+        <section>
+          <div className="list-head">
+            <h2>
+              {category === "All" ? "All reports" : category}
+              <span> {visible.length}</span>
+            </h2>
+            {category !== "All" && (
+              <button className="clear" onClick={() => setCategory("All")}>
+                Clear filter
+              </button>
+            )}
+          </div>
+          <ul className="catalogue">
+            {visible.map((report) => (
+              <li key={report.reportNo}>
+                <span className="year">{report.year}</span>
+                <div>
+                  <strong>{report.title}</strong>
+                  <p>
+                    {report.author}
+                    {report.projectType ? ` · ${report.projectType}` : ""}
+                  </p>
+                </div>
               </li>
             ))}
           </ul>
-        </article>
-        <article>
-          <h2>By year</h2>
-          <div className="years" aria-hidden="true">
-            {years.map((item) => (
-              <span
-                key={item.label}
-                title={`${item.label}: ${item.count}`}
-                style={{ height: `${12 + (item.count / maxYear) * 64}px` }}
-              />
-            ))}
-          </div>
-          <p className="year-range">
-            {yearRange.min} — {yearRange.max}
-          </p>
-          <h2>Project types</h2>
-          <p className="types">
-            {types.map((item) => (
-              <span key={item.label}>
-                {item.label} {item.count}
-              </span>
-            ))}
-          </p>
-        </article>
-      </section>
-
-      <section>
-        <div className="list-head">
-          <h2>
-            {category === "All" ? "All reports" : category}
-            <span> {visible.length}</span>
-          </h2>
-          {category !== "All" && (
-            <button className="clear" onClick={() => setCategory("All")}>
-              Clear filter
-            </button>
-          )}
-        </div>
-        <ul className="catalogue">
-          {visible.map((report) => (
-            <li key={report.reportNo}>
-              <span className="year">{report.year}</span>
-              <div>
-                <strong>{report.title}</strong>
-                <p>
-                  {report.author}
-                  {report.projectType ? ` · ${report.projectType}` : ""}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </section>
-    </div>
+        </section>
+      </div>
+    </Shell>
   );
 }

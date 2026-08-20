@@ -1,51 +1,20 @@
-import { useMemo, useState } from "react";
+/*
+  Report fields from @hhcd/data:
+  reportNo, category, title, author, year, description, projectType,
+  targetedUser, findings, outputs, challenges, budget, methodsNarrative,
+  methodsPrimary[], methodsSecondary[], website, partner, connections, contact.
+
+  Helpers: reports, categories, projectTypes, yearRange, countBy(key).
+*/
 import { reports } from "@hhcd/data";
+import { Shell } from "@hhcd/shell";
+import "@hhcd/shell/shell.css";
 
 export default function App() {
-  const [query, setQuery] = useState("");
-  const matches = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    if (!needle) return reports.slice(0, 8);
-    return reports
-      .filter((report) =>
-        [report.title, report.author, report.category, report.description]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(needle),
-      )
-      .slice(0, 12);
-  }, [query]);
-
   return (
-    <div className="page">
-      <p className="back">
-        <a href="../">Report Atlas</a>
-      </p>
-      <p className="banner">Starter template — replace this view with your visualisation.</p>
-      <h1>New visualisation</h1>
-      <p className="lede">
-        Import the shared catalogue from <code>@hhcd/data</code>. Search is only
-        here to prove the data is wired up.
-      </p>
-      <label>
-        Search reports
-        <input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="title, author, category…"
-        />
-      </label>
-      <ul>
-        {matches.map((report) => (
-          <li key={report.reportNo}>
-            <strong>{report.title}</strong>
-            <span>
-              {report.year} · {report.author}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <Shell title="New visualisation">
+      <p className="hint">{reports.length} reports from @hhcd/data</p>
+      <div className="canvas">Your visualisation</div>
+    </Shell>
   );
 }
