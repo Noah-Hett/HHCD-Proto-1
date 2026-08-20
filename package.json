@@ -3,6 +3,9 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.15.0",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev:gallery": "pnpm --filter @hhcd/gallery dev",
     "dev:overview": "pnpm --filter @hhcd/overview dev",

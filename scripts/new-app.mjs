@@ -59,5 +59,5 @@ console.log(`Created apps/${name} and added it to apps/manifest.json`);
 console.log("Next:");
 console.log("  pnpm install");
 console.log(`  pnpm --filter @hhcd/${name} dev`);
-console.log("After a push to main, GitHub Pages will host it at:");
-console.log(`  https://noah-hett.github.io/HHCD-Proto-1/${name}/`);
+console.log("Open a pull request and Vercel will post a preview URL.");
+console.log(`On production it will live at /${name}/`);

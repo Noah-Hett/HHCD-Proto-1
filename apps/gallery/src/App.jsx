@@ -49,9 +49,9 @@ export default function App() {
             Build it in <code>apps/your-name</code>. Keep other apps untouched.
           </li>
           <li>
-            Push to <code>main</code>. GitHub Pages publishes it at
+            Open a pull request. Vercel posts a preview URL with
             {" "}
-            <code>/your-name/</code> — no localhost required.
+            <code>/your-name/</code> on it — no localhost required.
           </li>
         </ol>
       </section>

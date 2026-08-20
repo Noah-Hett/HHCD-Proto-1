@@ -1,5 +1,5 @@
 import { build } from "vite";
-import { mkdir, readdir, writeFile } from "node:fs/promises";
+import { mkdir, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -51,5 +51,4 @@ for (const name of extra) {
   });
 }
 
-await writeFile(resolve(distDir, ".nojekyll"), "");
 console.log(`built gallery + ${extra.length} visualisations into dist/`);

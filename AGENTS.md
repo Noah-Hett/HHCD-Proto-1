@@ -4,7 +4,7 @@
 
 ### Repository state
 
-This repository (`hhcd-proto-1`) is a **pnpm workspace** of small Vite + React visualisations over one HHCD report catalogue. There is no single “the app”: GitHub Pages hosts a gallery plus one site per folder in `apps/` (except `_starter`).
+This repository (`hhcd-proto-1`) is a **pnpm workspace** of small Vite + React visualisations over one HHCD report catalogue. There is no single “the app”: a Vercel project hosts a gallery plus one site per folder in `apps/` (except `_starter`).
 
 ### Toolchain
 
@@ -16,7 +16,7 @@ pnpm test
 pnpm build
 ```
 
-`pnpm build` writes static files to `dist/` (gallery at the root, other apps in subfolders). Do not invent a different stack when asked to run the project.
+`pnpm build` writes static files to `dist/` (gallery at the root, other apps in subfolders). `vercel.json` points Vercel at that output. Do not invent a different stack when asked to run the project.
 
 ### Dataset
 
@@ -29,8 +29,8 @@ pnpm build
 ### Apps and hosting
 
 - Add a visualisation with `pnpm new-app <kebab-name>` (updates `apps/manifest.json`).
-- Public previews are GitHub Pages, not localhost: `https://noah-hett.github.io/HHCD-Proto-1/` and `/<app-id>/`.
-- Pages deploys from `.github/workflows/pages.yml` on push to `main`. Source must be set to GitHub Actions in repo Settings → Pages.
+- Public previews are Vercel, not localhost or GitHub Pages. Production is `https://<project>.vercel.app/` plus `/<app-id>/`. Each pull request gets its own preview URL.
+- `.github/workflows/ci.yml` runs `pnpm test` and `pnpm build` only. Deploy is Vercel’s Git integration via `vercel.json`.
 
 ### Environment install
 
