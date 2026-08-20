@@ -1,0 +1,25 @@
+{
+  "name": "hhcd-proto-1",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.15.0",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "dev:gallery": "pnpm --filter @hhcd/gallery dev",
+    "dev:overview": "pnpm --filter @hhcd/overview dev",
+    "dev:starter": "pnpm --filter @hhcd/starter dev",
+    "new-app": "node scripts/new-app.mjs",
+    "build": "node scripts/build-site.mjs",
+    "preview": "node scripts/build-site.mjs && python3 -m http.server 4173 --directory dist",
+    "test": "node scripts/check-data.mjs"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^6.0.11"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  }
+}

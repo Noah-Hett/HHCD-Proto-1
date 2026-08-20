@@ -1,0 +1,178 @@
+@import "@hhcd/theme/tokens.css";
+
+.page {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 2rem 1.5rem 5rem;
+}
+
+.back {
+  margin: 0 0 1.75rem;
+}
+
+.back a {
+  color: var(--ink-soft);
+}
+
+.kicker {
+  margin: 0 0 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+h1,
+h2 {
+  font-family: var(--serif);
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  margin: 0 0 0.8rem;
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  line-height: 1.05;
+}
+
+.lede {
+  max-width: 40rem;
+  margin: 0 0 2.2rem;
+  color: var(--ink-soft);
+}
+
+.stats {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  margin-bottom: 2.5rem;
+}
+
+h2 {
+  margin: 0 0 0.85rem;
+  font-size: 1.2rem;
+}
+
+h2 span {
+  color: var(--ink-soft);
+  font-family: var(--sans);
+  font-weight: 500;
+}
+
+.bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bars button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(7rem, 0.9fr) 1fr auto;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.35rem 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bars .label {
+  font-size: 0.88rem;
+}
+
+.bars .bar {
+  height: 0.55rem;
+  background: var(--accent);
+  opacity: 0.75;
+}
+
+.bars button.active .bar,
+.bars button:hover .bar {
+  opacity: 1;
+}
+
+.count {
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.years {
+  display: flex;
+  align-items: end;
+  gap: 0.28rem;
+  height: 5.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.years span {
+  flex: 1;
+  background: var(--ink);
+  opacity: 0.78;
+}
+
+.year-range {
+  margin: 0 0 1.5rem;
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+}
+
+.types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.types span {
+  background: var(--chip);
+  border: 1px solid var(--rule);
+  padding: 0.2rem 0.55rem;
+  font-size: 0.85rem;
+}
+
+.list-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  border-top: 1px solid var(--rule);
+  padding-top: 1.4rem;
+}
+
+.clear {
+  border: 0;
+  background: none;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0;
+}
+
+.catalogue {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.catalogue li {
+  display: grid;
+  grid-template-columns: 3.5rem 1fr;
+  gap: 1rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.year {
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.catalogue p {
+  margin: 0.2rem 0 0;
+  color: var(--ink-soft);
+}
+
+.catalogue strong {
+  font-family: var(--serif);
+  font-size: 1.05rem;
+}

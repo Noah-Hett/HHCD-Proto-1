@@ -1,0 +1,7 @@
+{
+  "name": "@hhcd/theme",
+  "private": true,
+  "exports": {
+    "./tokens.css": "./tokens.css"
+  }
+}
