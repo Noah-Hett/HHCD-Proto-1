@@ -17,7 +17,6 @@ const required = [
   "author",
   "year",
   "methodsPrimary",
-  "methodsSecondary",
 ];
 
 if (reports.length !== 62) {
@@ -30,8 +29,8 @@ for (const [index, report] of reports.entries()) {
       throw new Error(`report ${index} is missing ${key}`);
     }
   }
-  if (!Array.isArray(report.methodsPrimary) || !Array.isArray(report.methodsSecondary)) {
-    throw new Error(`report ${report.reportNo} methods must be arrays`);
+  if (!Array.isArray(report.methodsPrimary)) {
+    throw new Error(`report ${report.reportNo} methodsPrimary must be an array`);
   }
 }
 
@@ -40,8 +39,8 @@ if (!categories.has("Mobility and Transport") || !categories.has("Transport")) {
   throw new Error("expected both Mobility and Transport and Transport categories");
 }
 
-if (!csv.includes("Methods [options],Methods [options]")) {
-  throw new Error("source CSV should still contain the duplicate Methods columns");
+if (!csv.includes("Methods [options]")) {
+  throw new Error("source CSV should contain a Methods [options] column");
 }
 
 console.log(`ok: ${reports.length} reports, ${categories.size} categories`);
