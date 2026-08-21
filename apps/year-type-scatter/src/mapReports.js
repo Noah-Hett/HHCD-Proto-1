@@ -55,14 +55,20 @@ const COLOR_ORDER = Object.fromEntries(
   COLOR_GROUPS.map((group, index) => [group.id, index]),
 );
 
-function centerXs(group) {
+function neighborGap(left, right) {
+  const overlapped = 0.55 * (left.r + right.r);
+  const unobscured = Math.abs(left.r - right.r) + 3;
+  return Math.max(overlapped, unobscured);
+}
+
+function centerYs(group) {
   if (group.length === 1) return [0];
-  const xs = [0];
+  const ys = [0];
   for (let i = 0; i < group.length - 1; i += 1) {
-    xs.push(xs[i] + group[i].r + group[i + 1].r - 1);
+    ys.push(ys[i] + neighborGap(group[i], group[i + 1]));
   }
-  const mid = (xs[0] + xs[xs.length - 1]) / 2;
-  return xs.map((x) => x - mid);
+  const mid = (ys[0] + ys[ys.length - 1]) / 2;
+  return ys.map((y) => y - mid);
 }
 
 function assignCellOffsets(dots) {
@@ -77,10 +83,10 @@ function assignCellOffsets(dots) {
     group.sort(
       (a, b) => COLOR_ORDER[a.colorGroupId] - COLOR_ORDER[b.colorGroupId],
     );
-    const xs = centerXs(group);
+    const ys = centerYs(group);
     group.forEach((dot, index) => {
-      dot.dx = xs[index];
-      dot.dy = 0;
+      dot.dx = 0;
+      dot.dy = ys[index];
     });
   }
 }
