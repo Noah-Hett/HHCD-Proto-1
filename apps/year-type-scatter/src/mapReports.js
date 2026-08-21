@@ -55,11 +55,17 @@ const COLOR_ORDER = Object.fromEntries(
   COLOR_GROUPS.map((group, index) => [group.id, index]),
 );
 
+function neighborGap(left, right) {
+  const overlapped = 0.65 * (left.r + right.r);
+  const unobscured = Math.abs(left.r - right.r) + 3;
+  return Math.max(overlapped, unobscured);
+}
+
 function centerXs(group) {
   if (group.length === 1) return [0];
   const xs = [0];
   for (let i = 0; i < group.length - 1; i += 1) {
-    xs.push(xs[i] + 0.55 * (group[i].r + group[i + 1].r));
+    xs.push(xs[i] + neighborGap(group[i], group[i + 1]));
   }
   const mid = (xs[0] + xs[xs.length - 1]) / 2;
   return xs.map((x) => x - mid);

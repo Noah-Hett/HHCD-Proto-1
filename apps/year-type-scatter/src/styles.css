@@ -98,10 +98,6 @@
   outline: none;
 }
 
-.blob-visual {
-  pointer-events: none;
-}
-
 .dot-focus {
   fill: none;
   stroke: none;

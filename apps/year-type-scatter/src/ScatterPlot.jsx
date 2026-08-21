@@ -19,74 +19,6 @@ function yForBand(yBand) {
   return MARGIN.top + innerHeight * (1 - t);
 }
 
-function groupByCell(clusters) {
-  const cells = new Map();
-  for (const cluster of clusters) {
-    const members = cells.get(cluster.cellKey);
-    if (members) members.push(cluster);
-    else cells.set(cluster.cellKey, [cluster]);
-  }
-  return [...cells.values()].map((dots) => ({
-    cellKey: dots[0].cellKey,
-    year: dots[0].year,
-    yBand: dots[0].yBand,
-    dots,
-  }));
-}
-
-function DotControl({
-  cluster,
-  active,
-  selected,
-  onHover,
-  onLeave,
-  onSelect,
-  onDotRef,
-  showMark,
-}) {
-  function handleKeyDown(event) {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      onSelect(cluster);
-    }
-  }
-
-  return (
-    <g
-      className={active ? "dot active" : "dot"}
-      transform={`translate(${cluster.dx} ${cluster.dy})`}
-      tabIndex={0}
-      role="button"
-      aria-label={clusterAriaLabel(cluster)}
-      aria-pressed={selected}
-      ref={(node) => onDotRef(cluster.key, node)}
-      onMouseEnter={(event) => onHover(cluster, event)}
-      onMouseMove={(event) => onHover(cluster, event)}
-      onMouseLeave={onLeave}
-      onFocus={(event) => onHover(cluster, event)}
-      onBlur={onLeave}
-      onClick={() => onSelect(cluster)}
-      onKeyDown={handleKeyDown}
-    >
-      <circle
-        className="dot-hit"
-        r={Math.max(cluster.r + 6, 12)}
-        fill="transparent"
-      />
-      {showMark ? (
-        <circle
-          className="dot-mark"
-          r={cluster.r}
-          fill={cluster.color}
-          stroke="#111"
-          strokeWidth={active ? 1.6 : 1}
-        />
-      ) : null}
-      <circle className="dot-focus" r={cluster.r + 3.5} />
-    </g>
-  );
-}
-
 export default function ScatterPlot({
   clusters,
   yearMin,
@@ -98,7 +30,12 @@ export default function ScatterPlot({
   onSelect,
   onDotRef,
 }) {
-  const cells = groupByCell(clusters);
+  function handleKeyDown(event, cluster) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onSelect(cluster);
+    }
+  }
 
   return (
     <svg
@@ -112,28 +49,10 @@ export default function ScatterPlot({
         Scatter plot of research associate reports. The horizontal axis is year.
         The vertical axis is project type, from conceptual framework at the bottom
         to products at the top. Dot colour is research theme; size is how many
-        reports of that theme share a year and type. Themes at the same place sit
-        side by side and visually join. Activate a dot to read the reports.
+        reports of that theme share a year and type. Themes at the same place are
+        shifted slightly so each colour stays visible. Activate a dot to read the
+        reports.
       </desc>
-
-      <defs>
-        <filter
-          id="goo"
-          x="-80%"
-          y="-80%"
-          width="260%"
-          height="260%"
-          colorInterpolationFilters="sRGB"
-        >
-          <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur" />
-          <feColorMatrix
-            in="blur"
-            mode="matrix"
-            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7"
-            result="goo"
-          />
-        </filter>
-      </defs>
 
       {Y_BANDS.map((band) => {
         const y = yForBand(band.id);
@@ -177,41 +96,41 @@ export default function ScatterPlot({
         year
       </text>
 
-      {cells.map((cell) => {
-        const cx = xForYear(cell.year, yearMin, yearMax);
-        const cy = yForBand(cell.yBand);
-        const gooey = cell.dots.length > 1;
+      {clusters.map((cluster) => {
+        const cx = xForYear(cluster.year, yearMin, yearMax) + cluster.dx;
+        const cy = yForBand(cluster.yBand) + cluster.dy;
+        const active = hoveredKey === cluster.key || selectedKey === cluster.key;
         return (
-          <g key={cell.cellKey} transform={`translate(${cx} ${cy})`}>
-            {gooey ? (
-              <g className="blob-visual" filter="url(#goo)" aria-hidden="true">
-                {cell.dots.map((cluster) => (
-                  <circle
-                    key={cluster.key}
-                    className="blob-mark"
-                    cx={cluster.dx}
-                    cy={cluster.dy}
-                    r={cluster.r}
-                    fill={cluster.color}
-                  />
-                ))}
-              </g>
-            ) : null}
-            {cell.dots.map((cluster) => (
-              <DotControl
-                key={cluster.key}
-                cluster={cluster}
-                active={
-                  hoveredKey === cluster.key || selectedKey === cluster.key
-                }
-                selected={selectedKey === cluster.key}
-                onHover={onHover}
-                onLeave={onLeave}
-                onSelect={onSelect}
-                onDotRef={onDotRef}
-                showMark={!gooey}
-              />
-            ))}
+          <g
+            key={cluster.key}
+            className={active ? "dot active" : "dot"}
+            transform={`translate(${cx} ${cy})`}
+            tabIndex={0}
+            role="button"
+            aria-label={clusterAriaLabel(cluster)}
+            aria-pressed={selectedKey === cluster.key}
+            ref={(node) => onDotRef(cluster.key, node)}
+            onMouseEnter={(event) => onHover(cluster, event)}
+            onMouseMove={(event) => onHover(cluster, event)}
+            onMouseLeave={onLeave}
+            onFocus={(event) => onHover(cluster, event)}
+            onBlur={onLeave}
+            onClick={() => onSelect(cluster)}
+            onKeyDown={(event) => handleKeyDown(event, cluster)}
+          >
+            <circle
+              className="dot-hit"
+              r={Math.max(cluster.r + 6, 12)}
+              fill="transparent"
+            />
+            <circle
+              className="dot-mark"
+              r={cluster.r}
+              fill={cluster.color}
+              stroke="#111"
+              strokeWidth={active ? 1.6 : 1}
+            />
+            <circle className="dot-focus" r={cluster.r + 3.5} />
           </g>
         );
       })}
