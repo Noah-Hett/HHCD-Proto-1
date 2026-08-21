@@ -3,9 +3,16 @@
     {
       "id": "overview",
       "title": "Dataset overview",
-      "goal": "See all 62 reports at a glance \u2014 categories, years, and a filterable catalogue.",
+      "goal": "See all 62 reports at a glance — categories, years, and a filterable catalogue.",
       "owner": "shared",
       "status": "live"
+    },
+    {
+      "id": "year-type-scatter",
+      "title": "Year × project type",
+      "goal": "See how report types sit across time, coloured by research theme.",
+      "owner": "Nayana Crowe",
+      "status": "draft"
     }
   ]
 }
