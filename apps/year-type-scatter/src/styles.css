@@ -98,10 +98,19 @@
   outline: none;
 }
 
-.dot:focus-visible .dot-mark {
+.blob-visual {
+  pointer-events: none;
+}
+
+.dot-focus {
+  fill: none;
+  stroke: none;
+  pointer-events: none;
+}
+
+.dot:focus-visible .dot-focus {
   stroke: #111;
-  stroke-width: 2.4px;
-  filter: drop-shadow(0 0 0 2px #fff) drop-shadow(0 0 0 4px #111);
+  stroke-width: 2;
 }
 
 .dot.active .dot-mark {

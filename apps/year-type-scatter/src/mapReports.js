@@ -51,6 +51,40 @@ function colorGroupForCategory(category) {
   return COLOR_GROUPS.find((group) => group.categories.includes(category));
 }
 
+const COLOR_ORDER = Object.fromEntries(
+  COLOR_GROUPS.map((group, index) => [group.id, index]),
+);
+
+function centerXs(group) {
+  if (group.length === 1) return [0];
+  const xs = [0];
+  for (let i = 0; i < group.length - 1; i += 1) {
+    xs.push(xs[i] + 0.55 * (group[i].r + group[i + 1].r));
+  }
+  const mid = (xs[0] + xs[xs.length - 1]) / 2;
+  return xs.map((x) => x - mid);
+}
+
+function assignCellOffsets(dots) {
+  const cells = new Map();
+  for (const dot of dots) {
+    const members = cells.get(dot.cellKey);
+    if (members) members.push(dot);
+    else cells.set(dot.cellKey, [dot]);
+  }
+
+  for (const group of cells.values()) {
+    group.sort(
+      (a, b) => COLOR_ORDER[a.colorGroupId] - COLOR_ORDER[b.colorGroupId],
+    );
+    const xs = centerXs(group);
+    group.forEach((dot, index) => {
+      dot.dx = xs[index];
+      dot.dy = 0;
+    });
+  }
+}
+
 export function mapReports(reports) {
   const unmapped = [];
   const mapped = [];
@@ -86,8 +120,13 @@ export function mapReports(reports) {
 
   const dots = [...clusters.values()].map((cluster) => ({
     ...cluster,
+    cellKey: `${cluster.year}|${cluster.yBand}`,
     r: radius(cluster.reports.length),
+    dx: 0,
+    dy: 0,
   }));
+
+  assignCellOffsets(dots);
 
   dots.sort((a, b) => b.r - a.r || a.year - b.year || a.yBand - b.yBand);
 
