@@ -40,7 +40,7 @@ Follow AGENTS.md: run pnpm new-app with a kebab-case id, implement only in that 
 - Source CSV: `data/hhcd-reports.csv` (the filename used to contain spaces; always quote paths or glob).
 - Apps import `packages/data/src/reports.json` via `@hhcd/data`. After CSV edits run `python3 scripts/csv-to-json.py`.
 - Fields are quoted and contain embedded commas/newlines, so `wc -l` is **not** the row count. Use a real CSV parser. There are 62 report rows.
-- The header has **two columns literally named `Methods [options]`**. `csv.DictReader` keeps only the last one; JSON uses `methodsPrimary` and `methodsSecondary`.
+- The CSV has one `Methods [options]` column; JSON uses `methodsPrimary`.
 - Category values include both `Mobility and Transport` and a separate `Transport`.
 
 ## Toolchain

@@ -31,7 +31,7 @@ def main() -> None:
     data = rows[1:]
     reports = []
     for row in data:
-        while len(row) < 19:
+        while len(row) < 17:
             row.append("")
         year_raw = clean(row[4])
         try:
@@ -52,13 +52,11 @@ def main() -> None:
                 "outputs": clean(row[9]),
                 "challenges": clean(row[10]),
                 "budget": clean(row[11]),
-                "methodsNarrative": clean(row[12]),
-                "methodsPrimary": split_opts(row[13]),
-                "methodsSecondary": split_opts(row[14]),
-                "website": clean(row[15]),
-                "partner": clean(row[16]),
-                "connections": clean(row[17]),
-                "contact": clean(row[18]),
+                "methodsPrimary": split_opts(row[12]),
+                "website": clean(row[13]),
+                "partner": clean(row[14]),
+                "connections": clean(row[15]),
+                "contact": clean(row[16]),
             }
         )
     OUT.write_text(json.dumps(reports, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
