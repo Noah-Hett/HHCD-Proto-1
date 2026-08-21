@@ -59,7 +59,7 @@ function centerXs(group) {
   if (group.length === 1) return [0];
   const xs = [0];
   for (let i = 0; i < group.length - 1; i += 1) {
-    xs.push(xs[i] + group[i].r + group[i + 1].r + 2);
+    xs.push(xs[i] + group[i].r + group[i + 1].r - 1);
   }
   const mid = (xs[0] + xs[xs.length - 1]) / 2;
   return xs.map((x) => x - mid);
