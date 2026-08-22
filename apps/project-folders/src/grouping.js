@@ -31,7 +31,7 @@ export const YEAR_BUCKETS = [
   { id: "2013-2017", label: "2013–2017", min: 2013, max: 2017 },
 ];
 
-/** Dark cover colours: white title type on these passes WCAG AA. */
+/** Dark cover colours kept for any text UI that still names a theme. */
 export const CATEGORY_PALETTE = [
   { label: "Health and wellbeing", color: "#8B1A1A", initial: "H" },
   { label: "Work and workplace", color: "#1E3A8A", initial: "W" },
@@ -39,6 +39,29 @@ export const CATEGORY_PALETTE = [
   { label: "Mobility and Transport", color: "#9A3412", initial: "M" },
   { label: "Transport", color: "#14532D", initial: "T" },
 ];
+
+/** Jacket colours — mostly paper, with a few tints. Not mapped to theme. */
+const COVER_POOL = [
+  "#F4EFE6",
+  "#F4EFE6",
+  "#F4EFE6",
+  "#F4EFE6",
+  "#F4EFE6",
+  "#F4EFE6",
+  "#E8C4B8",
+  "#C5D4E6",
+  "#D2E3C8",
+  "#EDD99A",
+];
+
+export function coverColorFor(reportNo) {
+  const str = String(reportNo);
+  let hash = 0;
+  for (let i = 0; i < str.length; i += 1) {
+    hash = (hash * 31 + str.charCodeAt(i)) | 0;
+  }
+  return COVER_POOL[Math.abs(hash) % COVER_POOL.length];
+}
 
 const CATEGORY_BY_LABEL = new Map(
   CATEGORY_PALETTE.map((item) => [item.label, item]),

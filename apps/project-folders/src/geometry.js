@@ -1,39 +1,62 @@
 import * as THREE from "three";
-import { categoryStyle } from "./grouping.js";
+import { coverColorFor } from "./grouping.js";
 
-export const FOLDER_W = 0.5;
-export const FOLDER_D = 1.38;
+export const FOLDER_W = 0.56;
+export const FOLDER_D = 1.42;
 export const FOLDER_BACK_H = 2.52;
-export const FOLDER_FRONT_H = 1.62;
+export const FOLDER_FRONT_H = 1.56;
+export const WALL = 0.045;
 
-export const REPORT_H = 2.08;
-export const REPORT_D = 1.12;
+export const REPORT_H = 2.02;
+export const REPORT_D = 1.08;
 export const REPORT_THICK = 0.02;
 
-const C_LEFT = "#7A5D44";
-const C_FRONT = "#5C4230";
-const C_TOP = "#8C6E50";
-const C_DARK = "#4A3222";
+const C_LEFT = "#8A6A4C";
+const C_FRONT = "#6B4A34";
+const C_DARK = "#5A3E2A";
 const C_LABEL = "#F4EEE4";
-const C_HOLE = "#2A160C";
-const C_SHADOW = "#6E868C";
-const C_PAGES = "#EFE8DC";
+const C_PAGES = "#F7F3EC";
 const C_RINGS = "#1A120C";
+const C_INK = "#1C140C";
 
-function quad(p0, p1, p2, p3, color) {
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute(
-    "position",
-    new THREE.BufferAttribute(
-      new Float32Array([...p0, ...p1, ...p2, ...p0, ...p2, ...p3]),
-      3,
-    ),
-  );
+function lambert(color, extra = {}) {
+  return new THREE.MeshLambertMaterial({ color, ...extra });
+}
+
+function makeSideWallGeometry() {
+  const shape = new THREE.Shape();
+  shape.moveTo(0, 0);
+  shape.lineTo(FOLDER_D, 0);
+  shape.lineTo(FOLDER_D, FOLDER_FRONT_H);
+  shape.lineTo(0, FOLDER_BACK_H);
+  shape.closePath();
+  const geo = new THREE.ExtrudeGeometry(shape, {
+    depth: WALL,
+    bevelEnabled: false,
+    steps: 1,
+  });
   geo.computeVertexNormals();
-  return new THREE.Mesh(
-    geo,
-    new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide }),
-  );
+  return geo;
+}
+
+function makeFrontGeometry() {
+  const shape = new THREE.Shape();
+  shape.moveTo(0, 0);
+  shape.lineTo(FOLDER_W, 0);
+  shape.lineTo(FOLDER_W, FOLDER_FRONT_H);
+  shape.lineTo(0, FOLDER_FRONT_H);
+  shape.closePath();
+  const hole = new THREE.Path();
+  hole.absellipse(FOLDER_W / 2, 0.4, 0.085, 0.042, 0, Math.PI * 2, true);
+  shape.holes.push(hole);
+  const geo = new THREE.ExtrudeGeometry(shape, {
+    depth: WALL,
+    bevelEnabled: false,
+    steps: 1,
+    curveSegments: 16,
+  });
+  geo.computeVertexNormals();
+  return geo;
 }
 
 export function createSharedResources() {
@@ -43,89 +66,108 @@ export function createSharedResources() {
     REPORT_D * 0.96,
   );
   const coverGeo = new THREE.BoxGeometry(0.006, REPORT_H, REPORT_D);
-  const backGeo = new THREE.BoxGeometry(0.006, REPORT_H, REPORT_D);
+  const reportBackGeo = new THREE.BoxGeometry(0.006, REPORT_H, REPORT_D);
   const ringGeo = new THREE.TorusGeometry(0.028, 0.009, 5, 10);
-  const pagesMat = new THREE.MeshBasicMaterial({ color: C_PAGES });
-  const backMat = new THREE.MeshBasicMaterial({ color: "#D9D0C2" });
-  const ringMat = new THREE.MeshBasicMaterial({ color: C_RINGS });
-  return { pagesGeo, coverGeo, backGeo, ringGeo, pagesMat, backMat, ringMat };
+  const pagesMat = lambert(C_PAGES);
+  const reportBackMat = lambert("#E8E0D4");
+  const ringMat = lambert(C_RINGS);
+
+  const folderSideGeo = makeSideWallGeometry();
+  const folderFrontGeo = makeFrontGeometry();
+  const folderBottomGeo = new THREE.BoxGeometry(FOLDER_W, WALL, FOLDER_D);
+  const folderBackGeo = new THREE.BoxGeometry(FOLDER_W, FOLDER_BACK_H, WALL);
+  const folderLabelGeo = new THREE.PlaneGeometry(0.28, 0.15);
+
+  const folderMats = {
+    left: lambert(C_LEFT),
+    right: lambert(C_DARK),
+    front: lambert(C_FRONT),
+    back: lambert(C_DARK),
+    bottom: lambert(C_DARK),
+    label: lambert(C_LABEL),
+  };
+
+  return {
+    pagesGeo,
+    coverGeo,
+    reportBackGeo,
+    ringGeo,
+    pagesMat,
+    reportBackMat,
+    ringMat,
+    folderSideGeo,
+    folderFrontGeo,
+    folderBottomGeo,
+    folderBackGeo,
+    folderLabelGeo,
+    folderMats,
+  };
 }
 
 export function disposeSharedResources(shared) {
   shared.pagesGeo.dispose();
   shared.coverGeo.dispose();
-  shared.backGeo.dispose();
+  shared.reportBackGeo.dispose();
   shared.ringGeo.dispose();
   shared.pagesMat.dispose();
-  shared.backMat.dispose();
+  shared.reportBackMat.dispose();
   shared.ringMat.dispose();
+  shared.folderSideGeo.dispose();
+  shared.folderFrontGeo.dispose();
+  shared.folderBottomGeo.dispose();
+  shared.folderBackGeo.dispose();
+  shared.folderLabelGeo.dispose();
+  Object.values(shared.folderMats).forEach((mat) => mat.dispose());
 }
 
-export function createFolderMesh(folderId) {
+function markFolder(mesh, folderId, pickable) {
+  mesh.userData.kind = "folder";
+  mesh.userData.folderId = folderId;
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  pickable.push(mesh);
+}
+
+export function createFolderMesh(folderId, shared) {
   const group = new THREE.Group();
   const pickable = [];
+  const { folderMats } = shared;
 
-  const bw = FOLDER_W;
-  const bd = FOLDER_D;
-  const backH = FOLDER_BACK_H;
-  const frontH = FOLDER_FRONT_H;
+  const bottom = new THREE.Mesh(shared.folderBottomGeo, folderMats.bottom);
+  bottom.position.set(FOLDER_W / 2, WALL / 2, FOLDER_D / 2);
+  markFolder(bottom, folderId, pickable);
+  group.add(bottom);
 
-  const blb = [0, 0, 0];
-  const brb = [bw, 0, 0];
-  const flb = [0, 0, bd];
-  const frb = [bw, 0, bd];
-  const blt = [0, backH, 0];
-  const brt = [bw, backH, 0];
-  const flt = [0, frontH, bd];
-  const frt = [bw, frontH, bd];
+  const back = new THREE.Mesh(shared.folderBackGeo, folderMats.back);
+  back.position.set(FOLDER_W / 2, FOLDER_BACK_H / 2, WALL / 2);
+  markFolder(back, folderId, pickable);
+  group.add(back);
 
-  const addFace = (a, b, c, d, color) => {
-    const mesh = quad(a, b, c, d, color);
-    mesh.userData.kind = "folder";
-    mesh.userData.folderId = folderId;
-    group.add(mesh);
-    pickable.push(mesh);
-  };
+  const left = new THREE.Mesh(shared.folderSideGeo, folderMats.left);
+  left.rotation.y = -Math.PI / 2;
+  left.position.set(WALL, 0, 0);
+  markFolder(left, folderId, pickable);
+  group.add(left);
 
-  addFace(flb, blb, blt, flt, C_LEFT);
-  addFace(brb, frb, frt, brt, C_DARK);
-  addFace(flb, frb, frt, flt, C_FRONT);
-  addFace(brb, blb, blt, brt, C_DARK);
-  addFace(blb, brb, frb, flb, C_DARK);
-  addFace(flt, frt, brt, blt, C_TOP);
+  const right = new THREE.Mesh(shared.folderSideGeo, folderMats.right);
+  right.rotation.y = -Math.PI / 2;
+  right.position.set(FOLDER_W, 0, 0);
+  markFolder(right, folderId, pickable);
+  group.add(right);
 
-  const hole = new THREE.Mesh(
-    new THREE.CircleGeometry(0.09, 18),
-    new THREE.MeshBasicMaterial({ color: C_HOLE, side: THREE.DoubleSide }),
-  );
-  hole.scale.set(1, 0.5, 1);
-  hole.position.set(bw / 2, 0.4, bd + 0.004);
-  hole.userData.kind = "folder";
-  hole.userData.folderId = folderId;
-  group.add(hole);
-  pickable.push(hole);
+  const front = new THREE.Mesh(shared.folderFrontGeo, folderMats.front);
+  front.position.set(0, 0, FOLDER_D - WALL);
+  markFolder(front, folderId, pickable);
+  group.add(front);
 
-  const plate = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.28, 0.16),
-    new THREE.MeshBasicMaterial({ color: C_LABEL, side: THREE.DoubleSide }),
-  );
-  plate.position.set(bw / 2, 0.18, bd + 0.005);
+  const plate = new THREE.Mesh(shared.folderLabelGeo, folderMats.label);
+  plate.position.set(FOLDER_W / 2, 0.16, FOLDER_D + 0.002);
   plate.userData.kind = "folder";
   plate.userData.folderId = folderId;
+  plate.castShadow = false;
+  plate.receiveShadow = false;
   group.add(plate);
   pickable.push(plate);
-
-  const shadow = quad(
-    [0.28, -0.02, -0.28],
-    [bw + 0.62, -0.02, -0.28],
-    [bw + 0.82, -0.02, bd + 0.12],
-    [0.08, -0.02, bd + 0.12],
-    C_SHADOW,
-  );
-  shadow.material.transparent = true;
-  shadow.material.opacity = 0.28;
-  shadow.userData.kind = "shadow";
-  group.add(shadow);
 
   group.userData.kind = "folder";
   group.userData.folderId = folderId;
@@ -133,30 +175,25 @@ export function createFolderMesh(folderId) {
 }
 
 export function createCoverTexture(report) {
-  const style = categoryStyle(report.category);
+  const jacket = coverColorFor(report.reportNo);
   const canvas = document.createElement("canvas");
   canvas.width = 128;
   canvas.height = 192;
   const ctx = canvas.getContext("2d");
 
-  ctx.fillStyle = style.color;
+  ctx.fillStyle = jacket;
   ctx.fillRect(0, 0, 128, 192);
 
-  ctx.fillStyle = "rgba(0, 0, 0, 0.22)";
-  ctx.fillRect(0, 0, 128, 36);
+  ctx.fillStyle = "rgba(28, 20, 12, 0.08)";
+  ctx.fillRect(0, 0, 128, 32);
 
-  ctx.fillStyle = "rgba(255, 255, 255, 0.14)";
-  ctx.font = "bold 92px Georgia, serif";
-  ctx.textAlign = "center";
-  ctx.fillText(style.initial, 64, 118);
-
-  ctx.fillStyle = "#FFFFFF";
+  ctx.fillStyle = C_INK;
   ctx.textAlign = "left";
-  ctx.font = "bold 18px ui-sans-serif, system-ui, sans-serif";
-  ctx.fillText(`No. ${report.reportNo}`, 10, 24);
+  ctx.font = "bold 16px ui-sans-serif, system-ui, sans-serif";
+  ctx.fillText(`No. ${report.reportNo}`, 10, 22);
 
-  ctx.font = "14px ui-sans-serif, system-ui, sans-serif";
-  ctx.fillText(String(report.year ?? ""), 10, 178);
+  ctx.font = "13px ui-sans-serif, system-ui, sans-serif";
+  ctx.fillText(String(report.year ?? ""), 10, 176);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -167,30 +204,38 @@ export function createCoverTexture(report) {
 export function createReportMesh(report, shared) {
   const group = new THREE.Group();
   const pickable = [];
-  const style = categoryStyle(report.category);
+  const jacket = coverColorFor(report.reportNo);
   const texture = createCoverTexture(report);
 
   const pages = new THREE.Mesh(shared.pagesGeo, shared.pagesMat);
   pages.position.x = 0.004;
+  pages.castShadow = true;
+  pages.receiveShadow = true;
   group.add(pages);
   pickable.push(pages);
 
-  const back = new THREE.Mesh(shared.backGeo, shared.backMat);
+  const back = new THREE.Mesh(shared.reportBackGeo, shared.reportBackMat);
   back.position.x = 0.016;
+  back.castShadow = true;
   group.add(back);
   pickable.push(back);
 
-  const coverMat = new THREE.MeshBasicMaterial({ map: texture });
+  const coverMat = lambert("#ffffff");
+  coverMat.map = texture;
+  coverMat.needsUpdate = true;
   const cover = new THREE.Mesh(shared.coverGeo, coverMat);
   cover.position.x = -0.01;
+  cover.castShadow = true;
+  cover.receiveShadow = true;
   group.add(cover);
   pickable.push(cover);
 
   const spine = new THREE.Mesh(
     new THREE.BoxGeometry(0.018, REPORT_H * 0.98, 0.018),
-    new THREE.MeshBasicMaterial({ color: style.color }),
+    lambert(jacket),
   );
   spine.position.set(0.002, 0, REPORT_D / 2 - 0.01);
+  spine.castShadow = true;
   group.add(spine);
   pickable.push(spine);
 
@@ -222,10 +267,10 @@ export function createReportMesh(report, shared) {
 }
 
 export function folderSpacing(count) {
-  if (count <= 4) return 1.38;
-  if (count <= 5) return 1.14;
-  if (count <= 6) return 0.98;
-  return 0.84;
+  if (count <= 4) return 1.42;
+  if (count <= 5) return 1.18;
+  if (count <= 6) return 1.02;
+  return 0.88;
 }
 
 export function computeLayout(folders) {
@@ -233,20 +278,20 @@ export function computeLayout(folders) {
   const spacing = folderSpacing(n);
   const folderPos = {};
   const reportPos = {};
+  const innerW = FOLDER_W - WALL * 2 - 0.04;
 
   folders.forEach((folder, index) => {
     const x = -((n - 1) * spacing) / 2 + index * spacing;
     folderPos[folder.id] = { x, y: 0, z: 0, folder };
     const count = folder.reports.length;
-    const inner = FOLDER_W - 0.08;
-    const slot = Math.min(0.03, inner / Math.max(count, 1));
+    const slot = Math.min(0.03, innerW / Math.max(count, 1));
     folder.reports.forEach((report, slotIndex) => {
       const xOff = (slotIndex - (count - 1) / 2) * slot;
       reportPos[report.reportNo] = {
-        x: x + FOLDER_W * 0.5 + xOff,
-        y: REPORT_H * 0.5 + 0.03,
-        z: FOLDER_D * 0.46,
-        rx: 0.1,
+        x: FOLDER_W * 0.5 + xOff,
+        y: WALL + REPORT_H * 0.5,
+        z: WALL + REPORT_D * 0.5 + 0.06,
+        rx: 0.05,
         folderId: folder.id,
         slotIndex,
         count,

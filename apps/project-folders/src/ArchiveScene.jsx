@@ -21,6 +21,22 @@ function easeInOut(t) {
   return x < 0.5 ? 2 * x * x : -1 + (4 - 2 * x) * x;
 }
 
+function liftCurve(t) {
+  if (t <= 0) return 0;
+  if (t >= 1) return 0;
+  if (t < 0.22) return t / 0.22;
+  if (t > 0.78) return (1 - t) / 0.22;
+  return 1;
+}
+
+function sideSign(x) {
+  return x < 0 ? -1 : 1;
+}
+
+const EXIT_X = 12;
+const LIFT = 2.7;
+const SELECT_Z = 0.78;
+
 const CAM = {
   theme: {
     pos: new THREE.Vector3(-5.4, 6.9, 12.6),
@@ -41,11 +57,40 @@ function lerpCam(fromId, toId, t, outPos, outLook) {
   outLook.lerpVectors(CAM[fromId].look, CAM[toId].look, t);
 }
 
+function folderSlide(fromLayout, toLayout, id, blend) {
+  const from = fromLayout.folderPos[id];
+  const to = toLayout.folderPos[id];
+  if (from && to) {
+    return {
+      x: THREE.MathUtils.lerp(from.x, to.x, blend),
+      y: 0,
+      z: 0,
+      meta: to.folder,
+    };
+  }
+  if (from) {
+    return {
+      x: from.x + sideSign(from.x) * EXIT_X * blend,
+      y: 0,
+      z: 0,
+      meta: from.folder,
+    };
+  }
+  if (to) {
+    return {
+      x: to.x + sideSign(to.x) * EXIT_X * (1 - blend),
+      y: 0,
+      z: 0,
+      meta: to.folder,
+    };
+  }
+  return null;
+}
+
 export default function ArchiveScene({
   progress,
   grouping,
   reduceMotion,
-  pauseIdle,
   selectedFolderId,
   selectedReportNo,
   onSelectFolder,
@@ -58,7 +103,6 @@ export default function ArchiveScene({
   const progressRef = useRef(progress);
   const groupingRef = useRef(grouping);
   const reduceRef = useRef(reduceMotion);
-  const pauseRef = useRef(pauseIdle);
   const selectedFolderRef = useRef(selectedFolderId);
   const selectedReportRef = useRef(selectedReportNo);
   const onFolderRef = useRef(onSelectFolder);
@@ -67,7 +111,6 @@ export default function ArchiveScene({
   progressRef.current = progress;
   groupingRef.current = grouping;
   reduceRef.current = reduceMotion;
-  pauseRef.current = pauseIdle;
   selectedFolderRef.current = selectedFolderId;
   selectedReportRef.current = selectedReportNo;
   onFolderRef.current = onSelectFolder;
@@ -102,6 +145,8 @@ export default function ArchiveScene({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.BasicShadowMap;
     renderer.domElement.setAttribute("aria-hidden", "true");
     renderer.domElement.style.display = "block";
     renderer.domElement.style.width = "100%";
@@ -109,12 +154,31 @@ export default function ArchiveScene({
     renderer.domElement.style.touchAction = "pan-y";
     mount.appendChild(renderer.domElement);
 
+    const hemi = new THREE.HemisphereLight("#f3f6f4", "#c4b29a", 0.62);
+    scene.add(hemi);
+    const sun = new THREE.DirectionalLight("#ffffff", 1.35);
+    sun.position.set(-7.5, 13, 5.5);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.camera.near = 1;
+    sun.shadow.camera.far = 42;
+    sun.shadow.camera.left = -14;
+    sun.shadow.camera.right = 14;
+    sun.shadow.camera.top = 12;
+    sun.shadow.camera.bottom = -8;
+    sun.shadow.bias = -0.0005;
+    sun.shadow.normalBias = 0.03;
+    sun.shadow.radius = 0;
+    scene.add(sun);
+    scene.add(sun.target);
+
     const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(40, 40),
-      new THREE.MeshBasicMaterial({ color: "#C9DCE0" }),
+      new THREE.PlaneGeometry(48, 48),
+      new THREE.MeshLambertMaterial({ color: "#B9CED3" }),
     );
     ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -0.03;
+    ground.position.y = 0;
+    ground.receiveShadow = true;
     scene.add(ground);
 
     const layouts = {};
@@ -127,11 +191,11 @@ export default function ArchiveScene({
       for (const id of Object.keys(layout.folderPos)) allFolderIds.add(id);
     }
 
+    const shared = createSharedResources();
     const folders = new Map();
     const labelNodes = new Map();
     for (const id of allFolderIds) {
-      const { group, pickable } = createFolderMesh(id);
-      group.scale.setScalar(0.001);
+      const { group, pickable } = createFolderMesh(id, shared);
       scene.add(group);
       folders.set(id, { group, pickable, id });
 
@@ -142,7 +206,6 @@ export default function ArchiveScene({
       labelNodes.set(id, el);
     }
 
-    const shared = createSharedResources();
     const reportEntries = [];
     const pickables = [];
 
@@ -156,8 +219,15 @@ export default function ArchiveScene({
         shared,
       );
       const start = layouts.theme.reportPos[report.reportNo];
-      if (start) {
-        group.position.set(start.x, start.y, start.z);
+      const folderStart = start
+        ? layouts.theme.folderPos[start.folderId]
+        : null;
+      if (start && folderStart) {
+        group.position.set(
+          folderStart.x + start.x,
+          folderStart.y + start.y,
+          folderStart.z + start.z,
+        );
         group.rotation.x = start.rx;
       }
       scene.add(group);
@@ -176,8 +246,10 @@ export default function ArchiveScene({
       const start = layouts.theme.folderPos[id];
       if (start) {
         entry.group.position.set(start.x, start.y, start.z);
-        entry.group.scale.setScalar(1);
         entry.group.visible = true;
+      } else {
+        entry.group.position.x = EXIT_X;
+        entry.group.visible = false;
       }
     }
 
@@ -192,7 +264,6 @@ export default function ArchiveScene({
     let downX = 0;
     let downY = 0;
     let raf = 0;
-    const clock = new THREE.Clock();
 
     const setPointer = (event) => {
       const rect = renderer.domElement.getBoundingClientRect();
@@ -258,9 +329,7 @@ export default function ArchiveScene({
 
     const tick = () => {
       raf = requestAnimationFrame(tick);
-      const time = clock.getElapsedTime();
       const reduce = reduceRef.current;
-      const pause = pauseRef.current;
       const morph = reduce
         ? {
             from: groupingRef.current,
@@ -274,6 +343,7 @@ export default function ArchiveScene({
       const toLayout = layouts[morph.to];
       const selectedFolder = selectedFolderRef.current;
       const selectedReport = selectedReportRef.current;
+      const shuffling = morph.from !== morph.to && blend > 0 && blend < 1;
 
       lerpCam(morph.from, morph.to, blend, camPos, camLook);
       if (reduce) {
@@ -283,65 +353,42 @@ export default function ArchiveScene({
       }
       camera.lookAt(camLook);
 
-      const activeIds = new Set([
-        ...Object.keys(fromLayout.folderPos),
-        ...Object.keys(toLayout.folderPos),
-      ]);
-
       for (const [id, entry] of folders) {
-        const from = fromLayout.folderPos[id];
-        const to = toLayout.folderPos[id];
-        let x = 0;
-        let y = 0;
-        let z = 0;
-        let scale = 0;
-        if (from && to) {
-          x = THREE.MathUtils.lerp(from.x, to.x, blend);
-          y = THREE.MathUtils.lerp(from.y, to.y, blend);
-          z = THREE.MathUtils.lerp(from.z, to.z, blend);
-          scale = 1;
-        } else if (to) {
-          x = to.x;
-          y = to.y;
-          z = to.z;
-          scale = 0.001 + 0.999 * blend;
-        } else if (from) {
-          x = from.x;
-          y = from.y;
-          z = from.z;
-          scale = 1 - 0.999 * blend;
+        const slide = folderSlide(fromLayout, toLayout, id, reduce ? 0 : blend);
+        const label = labelNodes.get(id);
+        if (!slide) {
+          entry.group.visible = false;
+          if (label) label.style.opacity = "0";
+          continue;
         }
 
-        const selected = id === selectedFolder;
-        const bob =
-          pause || reduce ? 0 : Math.sin(time * 0.45 + x) * 0.02;
-        const targetY = y + bob + (selected ? 0.16 : 0);
-        const targetZ = z + (selected ? 0.58 : 0);
-        const targetS = scale * (selected ? 1.04 : 1);
-
-        const follow = reduce ? 1 : 0.1;
-        entry.group.position.x += (x - entry.group.position.x) * follow;
-        entry.group.position.y += (targetY - entry.group.position.y) * follow;
-        entry.group.position.z += (targetZ - entry.group.position.z) * follow;
-        entry.group.scale.setScalar(
-          entry.group.scale.x + (targetS - entry.group.scale.x) * follow,
-        );
-        entry.group.visible = scale > 0.02;
-
-        const label = labelNodes.get(id);
-        if (!label) continue;
+        const selected = id === selectedFolder && !shuffling;
+        const targetX = slide.x;
+        const targetY = selected ? 0.04 : 0;
+        const targetZ = selected ? SELECT_Z : 0;
+        const follow = reduce ? 1 : 0.12;
         if (!entry.group.visible) {
+          entry.group.position.set(targetX, targetY, targetZ);
+        } else {
+          entry.group.position.x += (targetX - entry.group.position.x) * follow;
+          entry.group.position.y += (targetY - entry.group.position.y) * follow;
+          entry.group.position.z += (targetZ - entry.group.position.z) * follow;
+        }
+        entry.group.visible = Math.abs(entry.group.position.x) < 14;
+
+        if (!label) continue;
+        const onStage = Math.abs(entry.group.position.x) < 5.8;
+        if (!entry.group.visible || !onStage) {
           label.style.opacity = "0";
           continue;
         }
-        const folderMeta = (to ?? from)?.folder;
-        label.textContent = folderMeta
-          ? `${folderMeta.label} (${folderMeta.count})`
+        label.textContent = slide.meta
+          ? `${slide.meta.label} (${slide.meta.count})`
           : "";
         label.classList.toggle("is-selected", selected);
         projected.set(
           entry.group.position.x + FOLDER_W * 0.5,
-          -0.12,
+          -0.08,
           entry.group.position.z + FOLDER_D * 0.55,
         );
         projected.project(camera);
@@ -355,42 +402,54 @@ export default function ArchiveScene({
         const from = fromLayout.reportPos[entry.id];
         const to = toLayout.reportPos[entry.id];
         if (!from && !to) continue;
-        const a = from ?? to;
-        const b = to ?? from;
-        const flying = Boolean(from && to && morph.t > 0 && morph.from !== morph.to);
-        const x = THREE.MathUtils.lerp(a.x, b.x, blend);
-        const y = THREE.MathUtils.lerp(a.y, b.y, blend);
-        const z = THREE.MathUtils.lerp(a.z, b.z, blend);
-        const rx = THREE.MathUtils.lerp(a.rx, b.rx, blend);
-        const arc = flying && !reduce ? Math.sin(Math.PI * blend) * 1.35 : 0;
-        const dest = b;
-        const inSelected = dest.folderId === selectedFolder;
+        const dest = to ?? from;
+        const origin = from ?? to;
         const isReport = entry.id === selectedReport;
+        const inSelected = dest.folderId === selectedFolder && !shuffling;
         const isHover =
           hovered?.kind === "report" && hovered.reportNo === entry.id;
         const fan = inSelected
-          ? (dest.slotIndex - (dest.count - 1) / 2) * 0.055
+          ? (dest.slotIndex - (dest.count - 1) / 2) * 0.04
           : 0;
-        const targetX = x;
-        const targetY =
-          y + arc + (isReport ? 0.28 : inSelected ? 0.1 : 0) + (isHover ? 0.06 : 0);
-        const targetZ = z + fan + (isReport ? 0.92 : inSelected ? 0.22 : 0);
-        const targetRx = isReport ? 0.02 : rx;
-        const follow = reduce ? 1 : flying ? 0.14 : 0.1;
+
+        let targetX;
+        let targetY;
+        let targetZ;
+        let targetRx;
+        let follow;
+
+        if (shuffling) {
+          const fromFolder = fromLayout.folderPos[origin.folderId];
+          const toFolder = toLayout.folderPos[dest.folderId];
+          const ax = (fromFolder?.x ?? 0) + origin.x;
+          const ay = origin.y;
+          const az = (fromFolder?.z ?? 0) + origin.z;
+          const bx = (toFolder?.x ?? 0) + dest.x;
+          const by = dest.y;
+          const bz = (toFolder?.z ?? 0) + dest.z;
+          targetX = THREE.MathUtils.lerp(ax, bx, blend);
+          targetY = THREE.MathUtils.lerp(ay, by, blend) + liftCurve(blend) * LIFT;
+          targetZ = THREE.MathUtils.lerp(az, bz, blend);
+          targetRx = THREE.MathUtils.lerp(origin.rx, dest.rx, blend);
+          follow = reduce ? 1 : 0.16;
+        } else {
+          const folderEntry = folders.get(dest.folderId);
+          const fp = folderEntry?.group.position ?? { x: 0, y: 0, z: 0 };
+          targetX = fp.x + dest.x;
+          targetY = fp.y + dest.y + (isReport ? 0.1 : 0) + (isHover ? 0.04 : 0);
+          targetZ =
+            fp.z + dest.z + fan + (isReport ? 0.7 : inSelected ? 0.12 : 0);
+          targetRx = isReport ? 0.02 : dest.rx;
+          follow = reduce ? 1 : 0.2;
+        }
+
         const g = entry.group;
         g.position.x += (targetX - g.position.x) * follow;
         g.position.y += (targetY - g.position.y) * follow;
         g.position.z += (targetZ - g.position.z) * follow;
         g.rotation.x += (targetRx - g.rotation.x) * follow;
-        const s = isReport ? 1.06 : 1;
+        const s = isReport ? 1.05 : 1;
         g.scale.setScalar(g.scale.x + (s - g.scale.x) * follow);
-      }
-
-      // Hide labels for folders not in the current morph pair
-      for (const id of folders.keys()) {
-        if (activeIds.has(id)) continue;
-        const label = labelNodes.get(id);
-        if (label) label.style.opacity = "0";
       }
 
       renderer.render(scene, camera);
@@ -407,13 +466,19 @@ export default function ArchiveScene({
       const sharedGeos = new Set([
         shared.pagesGeo,
         shared.coverGeo,
-        shared.backGeo,
+        shared.reportBackGeo,
         shared.ringGeo,
+        shared.folderSideGeo,
+        shared.folderFrontGeo,
+        shared.folderBottomGeo,
+        shared.folderBackGeo,
+        shared.folderLabelGeo,
       ]);
       const sharedMats = new Set([
         shared.pagesMat,
-        shared.backMat,
+        shared.reportBackMat,
         shared.ringMat,
+        ...Object.values(shared.folderMats),
       ]);
       const disposeObject = (root) => {
         root.traverse((obj) => {

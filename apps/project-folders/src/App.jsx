@@ -4,7 +4,6 @@ import { Shell } from "@hhcd/shell";
 import "@hhcd/shell/shell.css";
 import ArchiveScene from "./ArchiveScene.jsx";
 import {
-  CATEGORY_PALETTE,
   GROUPINGS,
   findReport,
   folderForReport,
@@ -35,7 +34,6 @@ export default function App() {
   const [selectedFolderId, setSelectedFolderId] = useState(null);
   const [selectedReportNo, setSelectedReportNo] = useState(null);
   const [reduceMotion, setReduceMotion] = useState(prefersReducedMotion);
-  const [pauseIdle, setPauseIdle] = useState(prefersReducedMotion);
   const [webglFailed, setWebglFailed] = useState(false);
   const [announcement, setAnnouncement] = useState("");
 
@@ -54,10 +52,6 @@ export default function App() {
     media.addEventListener("change", onChange);
     return () => media.removeEventListener("change", onChange);
   }, []);
-
-  useEffect(() => {
-    if (reduceMotion) setPauseIdle(true);
-  }, [reduceMotion]);
 
   useEffect(() => {
     const next = folderForReport(grouping, selectedReportNo);
@@ -166,7 +160,6 @@ export default function App() {
                 progress={progress}
                 grouping={grouping}
                 reduceMotion={reduceMotion}
-                pauseIdle={pauseIdle}
                 selectedFolderId={selectedFolderId}
                 selectedReportNo={selectedReportNo}
                 onSelectFolder={(id) => selectFolder(id)}
@@ -202,7 +195,7 @@ export default function App() {
               <p className="scene-hint">
                 {reduceMotion
                   ? groupingMeta?.description
-                  : "Scroll the page to regroup the archive. Click a folder to pull it forward; click a report to slide it out."}
+                  : "Scroll the page to regroup the archive. Folders slide off the sides; reports lift, then drop into the new shelves. Click a folder to pull it forward; click a report to slide it out."}
               </p>
             </div>
           </div>
@@ -235,14 +228,6 @@ export default function App() {
                 />
                 Reduce motion
               </label>
-              <label className="toggle">
-                <input
-                  type="checkbox"
-                  checked={pauseIdle}
-                  onChange={(event) => setPauseIdle(event.target.checked)}
-                />
-                Pause idle motion
-              </label>
             </div>
           </aside>
         </div>
@@ -271,30 +256,10 @@ function FolderIndex({
       <h1 className="panel-title">Project folders</h1>
       <p className="panel-lead">
         {groupingMeta?.description} Each ring-bound document is one HHCD
-        report. Cover colour is the theme (named in the legend), so a year
-        folder still shows the mix of research areas inside it.
+        report. Jackets are mostly paper-white, with a few tinted covers —
+        colour is decorative, not a theme code. Theme, year, and type live in
+        the folder grouping and in this list.
       </p>
-
-      <h2 className="panel-kicker" id="legend-heading">
-        Theme colours
-      </h2>
-      <ul className="legend" aria-labelledby="legend-heading">
-        {CATEGORY_PALETTE.map((item) => (
-          <li key={item.label}>
-            <span
-              className="swatch"
-              style={{ background: item.color }}
-              aria-hidden="true"
-            />
-            <span>
-              <span className="swatch-initial" aria-hidden="true">
-                {item.initial}
-              </span>
-              {item.label}
-            </span>
-          </li>
-        ))}
-      </ul>
 
       <h2 className="panel-kicker" id="folder-heading">
         Folders by {groupingMeta?.label?.toLowerCase()}
