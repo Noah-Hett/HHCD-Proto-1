@@ -430,20 +430,30 @@ export default function ArchiveScene({
         let targetRx;
         let follow;
 
-        if (shuffling) {
-          const fromFolder = fromLayout.folderPos[origin.folderId];
-          const toFolder = toLayout.folderPos[dest.folderId];
+        const destRest = toLayout.folderPos[dest.folderId];
+        const originRest = fromLayout.folderPos[origin.folderId];
+        const destEntry = folders.get(dest.folderId);
+        const arriving =
+          Boolean(destRest) &&
+          destEntry &&
+          Math.abs(destEntry.group.position.x - destRest.x) > 0.45;
+        const inFlight = (shuffling || arriving) && !reduce;
+
+        if (inFlight) {
+          const fromFolder = originRest;
+          const toFolder = destRest ?? originRest;
           const ax = (fromFolder?.x ?? 0) + origin.x;
           const ay = origin.y;
           const az = (fromFolder?.z ?? 0) + origin.z;
           const bx = (toFolder?.x ?? 0) + dest.x;
           const by = dest.y;
           const bz = (toFolder?.z ?? 0) + dest.z;
-          targetX = THREE.MathUtils.lerp(ax, bx, blend);
-          targetY = THREE.MathUtils.lerp(ay, by, blend) + liftCurve(blend) * LIFT;
-          targetZ = THREE.MathUtils.lerp(az, bz, blend);
-          targetRx = THREE.MathUtils.lerp(origin.rx, dest.rx, blend);
-          follow = reduce ? 1 : 0.16;
+          const lift = shuffling ? liftCurve(blend) * LIFT : LIFT * 0.55;
+          targetX = THREE.MathUtils.lerp(ax, bx, shuffling ? blend : 1);
+          targetY = THREE.MathUtils.lerp(ay, by, shuffling ? blend : 1) + lift;
+          targetZ = THREE.MathUtils.lerp(az, bz, shuffling ? blend : 1);
+          targetRx = THREE.MathUtils.lerp(origin.rx, dest.rx, shuffling ? blend : 1);
+          follow = 0.1;
         } else {
           const folderEntry = folders.get(dest.folderId);
           const fp = folderEntry?.group.position ?? { x: 0, y: 0, z: 0 };
