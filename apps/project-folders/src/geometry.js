@@ -4,8 +4,8 @@ import { coverColorFor } from "./grouping.js";
 export const FOLDER_W = 0.56;
 export const FOLDER_D = 1.42;
 export const FOLDER_BACK_H = 2.52;
-export const FOLDER_FRONT_H = 1.56;
-export const WALL = 0.045;
+export const FOLDER_FRONT_H = 1.28;
+export const WALL = 0.032;
 
 export const REPORT_H = 2.02;
 export const REPORT_D = 1.08;
@@ -20,7 +20,11 @@ const C_RINGS = "#1A120C";
 const C_INK = "#1C140C";
 
 function lambert(color, extra = {}) {
-  return new THREE.MeshLambertMaterial({ color, ...extra });
+  return new THREE.MeshLambertMaterial({
+    color,
+    flatShading: true,
+    ...extra,
+  });
 }
 
 function makeSideWallGeometry() {

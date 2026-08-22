@@ -57,34 +57,23 @@ function lerpCam(fromId, toId, t, outPos, outLook) {
   outLook.lerpVectors(CAM[fromId].look, CAM[toId].look, t);
 }
 
-function folderSlide(fromLayout, toLayout, id, blend) {
+function folderTarget(fromLayout, toLayout, id, entry) {
   const from = fromLayout.folderPos[id];
   const to = toLayout.folderPos[id];
-  if (from && to) {
-    return {
-      x: THREE.MathUtils.lerp(from.x, to.x, blend),
-      y: 0,
-      z: 0,
-      meta: to.folder,
-    };
-  }
-  if (from) {
-    return {
-      x: from.x + sideSign(from.x) * EXIT_X * blend,
-      y: 0,
-      z: 0,
-      meta: from.folder,
-    };
-  }
+  if (to) entry.restX = to.x;
+  else if (from) entry.restX = from.x;
+
   if (to) {
-    return {
-      x: to.x + sideSign(to.x) * EXIT_X * (1 - blend),
-      y: 0,
-      z: 0,
-      meta: to.folder,
-    };
+    return { x: to.x, y: 0, z: 0, meta: to.folder, onStage: true };
   }
-  return null;
+  const restX = entry.restX ?? 0;
+  return {
+    x: restX + sideSign(restX) * EXIT_X,
+    y: 0,
+    z: 0,
+    meta: from?.folder ?? null,
+    onStage: false,
+  };
 }
 
 export default function ArchiveScene({
@@ -154,27 +143,27 @@ export default function ArchiveScene({
     renderer.domElement.style.touchAction = "pan-y";
     mount.appendChild(renderer.domElement);
 
-    const hemi = new THREE.HemisphereLight("#f3f6f4", "#c4b29a", 0.62);
+    const hemi = new THREE.HemisphereLight("#f3f6f4", "#c4b29a", 0.38);
     scene.add(hemi);
-    const sun = new THREE.DirectionalLight("#ffffff", 1.35);
-    sun.position.set(-7.5, 13, 5.5);
+    const sun = new THREE.DirectionalLight("#ffffff", 1.85);
+    sun.position.set(-8, 14, 6);
     sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.mapSize.set(4096, 4096);
     sun.shadow.camera.near = 1;
     sun.shadow.camera.far = 42;
     sun.shadow.camera.left = -14;
     sun.shadow.camera.right = 14;
     sun.shadow.camera.top = 12;
     sun.shadow.camera.bottom = -8;
-    sun.shadow.bias = -0.0005;
-    sun.shadow.normalBias = 0.03;
+    sun.shadow.bias = -0.0008;
+    sun.shadow.normalBias = 0.02;
     sun.shadow.radius = 0;
     scene.add(sun);
     scene.add(sun.target);
 
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(48, 48),
-      new THREE.MeshLambertMaterial({ color: "#B9CED3" }),
+      new THREE.MeshLambertMaterial({ color: "#B9CED3", flatShading: true }),
     );
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = 0;
@@ -197,7 +186,7 @@ export default function ArchiveScene({
     for (const id of allFolderIds) {
       const { group, pickable } = createFolderMesh(id, shared);
       scene.add(group);
-      folders.set(id, { group, pickable, id });
+      folders.set(id, { group, pickable, id, parked: true, restX: 0 });
 
       const el = document.createElement("div");
       el.className = "scene-label";
@@ -247,7 +236,10 @@ export default function ArchiveScene({
       if (start) {
         entry.group.position.set(start.x, start.y, start.z);
         entry.group.visible = true;
+        entry.parked = false;
+        entry.restX = start.x;
       } else {
+        entry.parked = true;
         entry.group.position.x = EXIT_X;
         entry.group.visible = false;
       }
@@ -329,6 +321,12 @@ export default function ArchiveScene({
 
     const tick = () => {
       raf = requestAnimationFrame(tick);
+      if (sun.shadow.map && !sun.userData.hardened) {
+        sun.shadow.map.texture.magFilter = THREE.NearestFilter;
+        sun.shadow.map.texture.minFilter = THREE.NearestFilter;
+        sun.userData.hardened = true;
+      }
+
       const reduce = reduceRef.current;
       const morph = reduce
         ? {
@@ -354,27 +352,41 @@ export default function ArchiveScene({
       camera.lookAt(camLook);
 
       for (const [id, entry] of folders) {
-        const slide = folderSlide(fromLayout, toLayout, id, reduce ? 0 : blend);
+        const slide = folderTarget(fromLayout, toLayout, id, entry);
         const label = labelNodes.get(id);
-        if (!slide) {
-          entry.group.visible = false;
-          if (label) label.style.opacity = "0";
-          continue;
-        }
-
-        const selected = id === selectedFolder && !shuffling;
+        const selected = id === selectedFolder && slide.onStage && !shuffling;
         const targetX = slide.x;
         const targetY = selected ? 0.04 : 0;
         const targetZ = selected ? SELECT_Z : 0;
-        const follow = reduce ? 1 : 0.12;
-        if (!entry.group.visible) {
+        const follow = reduce ? 1 : 0.08;
+
+        if (slide.onStage) {
+          if (entry.parked) {
+            entry.group.position.set(
+              targetX + sideSign(targetX) * EXIT_X,
+              targetY,
+              targetZ,
+            );
+            entry.parked = false;
+            entry.group.visible = true;
+          }
+          if (reduce) {
+            entry.group.position.set(targetX, targetY, targetZ);
+          } else {
+            entry.group.position.x += (targetX - entry.group.position.x) * follow;
+            entry.group.position.y += (targetY - entry.group.position.y) * follow;
+            entry.group.position.z += (targetZ - entry.group.position.z) * follow;
+          }
+        } else if (reduce) {
           entry.group.position.set(targetX, targetY, targetZ);
+          entry.parked = true;
         } else {
           entry.group.position.x += (targetX - entry.group.position.x) * follow;
           entry.group.position.y += (targetY - entry.group.position.y) * follow;
           entry.group.position.z += (targetZ - entry.group.position.z) * follow;
+          if (Math.abs(entry.group.position.x) > 11) entry.parked = true;
         }
-        entry.group.visible = Math.abs(entry.group.position.x) < 14;
+        entry.group.visible = !entry.parked && Math.abs(entry.group.position.x) < 14;
 
         if (!label) continue;
         const onStage = Math.abs(entry.group.position.x) < 5.8;

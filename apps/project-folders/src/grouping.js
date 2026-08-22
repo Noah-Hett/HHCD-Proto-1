@@ -161,21 +161,21 @@ export function findReport(reportNo, source = reports) {
  */
 export function morphFromProgress(progress) {
   const p = Math.min(2, Math.max(0, progress));
-  if (p <= 0.38) return { from: "theme", to: "theme", t: 0, grouping: "theme" };
-  if (p < 0.62) {
+  if (p <= 0.22) return { from: "theme", to: "theme", t: 0, grouping: "theme" };
+  if (p < 0.78) {
     return {
       from: "theme",
       to: "year",
-      t: (p - 0.38) / 0.24,
+      t: (p - 0.22) / 0.56,
       grouping: p < 0.5 ? "theme" : "year",
     };
   }
-  if (p <= 1.38) return { from: "year", to: "year", t: 0, grouping: "year" };
-  if (p < 1.62) {
+  if (p <= 1.22) return { from: "year", to: "year", t: 0, grouping: "year" };
+  if (p < 1.78) {
     return {
       from: "year",
       to: "type",
-      t: (p - 1.38) / 0.24,
+      t: (p - 1.22) / 0.56,
       grouping: p < 1.5 ? "year" : "type",
     };
   }
