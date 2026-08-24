@@ -6,6 +6,26 @@ import { COLOR_GROUPS, mapReports } from "./mapReports.js";
 import ScatterPlot from "./ScatterPlot.jsx";
 import Tooltip from "./Tooltip.jsx";
 import ReportPanel from "./ReportPanel.jsx";
+import MethodFilter from "./MethodFilter.jsx";
+
+function uniqueMethods(allReports) {
+  const counts = new Map();
+  for (const report of allReports) {
+    for (const method of report.methods) {
+      counts.set(method, (counts.get(method) ?? 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([label, count]) => ({ label, count }));
+}
+
+function reportsMatchingMethods(allReports, selectedMethods) {
+  if (selectedMethods.size === 0) return allReports;
+  return allReports.filter((report) =>
+    report.methods.some((method) => selectedMethods.has(method)),
+  );
+}
 
 function tooltipPosition(event) {
   const pad = 12;
@@ -33,7 +53,14 @@ function tooltipPosition(event) {
 }
 
 export default function App() {
-  const mapped = useMemo(() => mapReports(reports), []);
+  const methodOptions = useMemo(() => uniqueMethods(reports), []);
+  const fullMapped = useMemo(() => mapReports(reports), []);
+  const [selectedMethods, setSelectedMethods] = useState(() => new Set());
+  const filteredReports = useMemo(
+    () => reportsMatchingMethods(reports, selectedMethods),
+    [selectedMethods],
+  );
+  const mapped = useMemo(() => mapReports(filteredReports), [filteredReports]);
   const [hovered, setHovered] = useState(null);
   const [selected, setSelected] = useState(null);
   const [tipPos, setTipPos] = useState({ x: 0, y: 0 });
@@ -67,11 +94,31 @@ export default function App() {
     node?.focus();
   }, []);
 
+  const handleToggleMethod = useCallback((label) => {
+    setSelectedMethods((current) => {
+      const next = new Set(current);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
     if (selected) {
       closeRef.current?.focus();
     }
   }, [selected]);
+
+  useEffect(() => {
+    setSelected((current) => {
+      if (!current) return current;
+      return mapped.clusters.find((cluster) => cluster.key === current.key) ?? null;
+    });
+    setHovered((current) => {
+      if (!current) return current;
+      return mapped.clusters.find((cluster) => cluster.key === current.key) ?? null;
+    });
+  }, [mapped]);
 
   useEffect(() => {
     function onKey(event) {
@@ -113,14 +160,19 @@ export default function App() {
           <div className="chart-wrap">
             <ScatterPlot
               clusters={mapped.clusters}
-              yearMin={mapped.yearMin}
-              yearMax={mapped.yearMax}
+              yearMin={fullMapped.yearMin}
+              yearMax={fullMapped.yearMax}
               hoveredKey={hovered?.key ?? null}
               selectedKey={selected?.key ?? null}
               onHover={handleHover}
               onLeave={handleLeave}
               onSelect={handleSelect}
               onDotRef={setDotRef}
+            />
+            <MethodFilter
+              methods={methodOptions}
+              selected={selectedMethods}
+              onToggle={handleToggleMethod}
             />
             <Tooltip cluster={hovered} x={tipPos.x} y={tipPos.y} />
           </div>
