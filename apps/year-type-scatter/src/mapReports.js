@@ -3,7 +3,7 @@ export const Y_BANDS = [
   { id: 1, label: "Design guidelines / Policy guidelines" },
   { id: 2, label: "Business model / Design concepts" },
   { id: 3, label: "Physical prototypes" },
-  { id: 4, label: "Products" },
+  { id: 4, label: "Products / Media campaign" },
 ];
 
 const PROJECT_TYPE_TO_BAND = {

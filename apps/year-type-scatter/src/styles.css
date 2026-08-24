@@ -202,16 +202,10 @@
   font-family: var(--font);
 }
 
-.x-end,
-.x-title {
+.x-end {
   fill: #111;
   font-size: 12px;
   font-family: var(--font);
-}
-
-.x-title {
-  font-size: 13px;
-  font-weight: 600;
 }
 
 .dot {
