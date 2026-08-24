@@ -1,4 +1,4 @@
-import csvText from "@hhcd-reports-csv?raw";
+import csvText from "@hhcd-reports-csv";
 import { parseReportsCsv } from "./parseReportsCsv.js";
 
 export { parseReportsCsv };
