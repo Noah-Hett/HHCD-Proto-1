@@ -234,9 +234,9 @@ function baseMetrics(width, height) {
   const cx = width / 2;
   const cy = height - padBottom;
   const outerR = Math.max(72, Math.min(cx - padX, cy - padTop));
-  const innerR = outerR * 0.4;
-  const categoryR = outerR * 0.66;
-  const projectR = outerR * 0.78;
+  const innerR = outerR * 0.36;
+  const categoryR = outerR * 0.68;
+  const projectR = outerR * 0.8;
   const bandInner = outerR * 0.88;
   const bandOuter = outerR * 0.94;
   const angleStart = -Math.PI + 0.18;
@@ -285,7 +285,7 @@ function placeCategorySectors(graph, metrics) {
 }
 
 function placeOverview(graph, metrics) {
-  const { cx, cy, innerR, categoryR, angleStart, span, scale } = metrics;
+  const { cx, cy, categoryR, scale } = metrics;
   const maxCat = Math.max(...graph.categories.map((category) => category.count), 1);
   const maxMethod = Math.max(...graph.methods.map((method) => method.count), 1);
 
@@ -316,18 +316,11 @@ function placeOverview(graph, metrics) {
     method.bary = weight ? sum / weight : 0;
   });
   graph.methods.sort((a, b) => a.bary - b.bary || a.label.localeCompare(b.label));
-  const methodSpanStart = angleStart + 0.1;
-  const methodSpan = span - 0.2;
-  graph.methods.forEach((method, index) => {
-    const t =
-      graph.methods.length === 1 ? 0.5 : index / (graph.methods.length - 1);
-    method.angle = methodSpanStart + t * methodSpan;
-    method.ring = innerR;
-    method.r = Math.max(10, (8 + 5 * Math.sqrt(method.count / maxMethod)) * scale);
-    method.labelIndex = index;
-    method.x = cx + method.ring * Math.cos(method.angle);
-    method.y = cy + method.ring * Math.sin(method.angle);
-  });
+  placeMethodNodes(
+    graph.methods,
+    metrics,
+    (method) => method.count / maxMethod,
+  );
 }
 
 function placeZoomed(graph, metrics, categoryId) {
@@ -371,13 +364,23 @@ function placeZoomed(graph, metrics, categoryId) {
     method.localCount = localCount.get(method.id) ?? 0;
   });
   methods.sort((a, b) => a.bary - b.bary || a.label.localeCompare(b.label));
-  const methodSpanStart = angleStart + 0.12;
-  const methodSpan = span - 0.24;
+  placeMethodNodes(
+    methods,
+    metrics,
+    (method) => (method.localCount || 1) / maxLocal,
+  );
+}
+
+function placeMethodNodes(methods, metrics, sizeOf) {
+  const { cx, cy, innerR, outerR, angleStart, span, scale } = metrics;
+  const ringGap = Math.min(38, outerR * 0.11);
+  const start = angleStart + 0.14;
+  const methodSpan = span - 0.28;
   methods.forEach((method, index) => {
     const t = methods.length === 1 ? 0.5 : index / (methods.length - 1);
-    method.angle = methodSpanStart + t * methodSpan;
-    method.ring = innerR;
-    method.r = Math.max(10, (8 + 5 * Math.sqrt((method.localCount || 1) / maxLocal)) * scale);
+    method.angle = start + t * methodSpan;
+    method.ring = innerR + (index % 2) * ringGap;
+    method.r = Math.max(12, (10.5 + 3.8 * Math.sqrt(sizeOf(method))) * scale);
     method.labelIndex = index;
     method.x = cx + method.ring * Math.cos(method.angle);
     method.y = cy + method.ring * Math.sin(method.angle);

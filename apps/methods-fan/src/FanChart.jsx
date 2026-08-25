@@ -200,8 +200,8 @@ export function FanChart({
       .attr("id", "methods-fan-desc")
       .text(
         zoomed
-          ? `Zoomed into ${zoomedCategory}. Inner nodes are methods used in this category. Outer nodes are this category’s reports around the semicircle. Escape returns to all categories.`
-          : "Inner nodes are research methods, each with its own symbol. Names sit outside the marks so they stay readable. Outer nodes are categories. A curve from a method to a category means reports in that category used the method. Activate a category to zoom in.",
+          ? `Zoomed into ${zoomedCategory}. Inner marks are methods used in this category, each with its own symbol. Names are in the method key; hover a mark to read it on the fan. Outer nodes are this category’s reports around the semicircle. Escape returns to all categories.`
+          : "Inner marks are research methods, each with its own symbol. Names live in the method key; hover a mark to read it on the fan. Outer nodes are categories. A curve from a method to a category means reports in that category used the method. Activate a category to zoom in.",
       );
 
     const root = svg.append("g").attr("class", "fan-root");
@@ -278,6 +278,7 @@ export function FanChart({
           .attr("r", (d) => d.r)
           .attr("fill", (d) => (d.kind === "method" ? "#f4efe6" : d.color));
         g.append("path").attr("class", "method-mark").attr("aria-hidden", "true");
+        g.append("title");
         g.append("text")
           .attr("class", "cat-count")
           .attr("text-anchor", "middle")
@@ -292,6 +293,10 @@ export function FanChart({
     const projectSel = nodeSel.filter((d) => d.kind === "project");
 
     applyMethodMarks(methodSel);
+    methodSel.select("title").text((d) => d.label);
+    categorySel
+      .select("title")
+      .text((d) => `${d.label}, ${d.count} reports`);
 
     methodSel
       .attr("tabindex", 0)
@@ -549,8 +554,8 @@ export function FanChart({
         })
         .attr("transform", (d) => {
           const a = Math.atan2(d.y - cy, d.x - cx);
-          const stagger = ((d.labelIndex ?? 0) % 2) * 14;
-          const p = polar(cx, cy, d.ring + d.r + 12 + stagger, a);
+          const stagger = 0;
+          const p = polar(cx, cy, d.ring + d.r + 10, a);
           return `translate(${p.x},${p.y})`;
         });
 

@@ -183,6 +183,16 @@
   paint-order: stroke fill;
 }
 
+.fan.is-focusing .method-label {
+  opacity: 0.15;
+}
+
+.fan.is-focusing .method-label.is-hot {
+  opacity: 1;
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .cat-label,
 .outer-label {
   font-size: 12px;

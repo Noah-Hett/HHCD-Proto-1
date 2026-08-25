@@ -342,8 +342,8 @@ function Detail({ detail, graph, onSelect, zoomedCategory }) {
       <h1>{zoomedCategory ? "This category" : "How to read this"}</h1>
       <p className="lede">
         {zoomedCategory
-          ? "Inner marks are the methods used here — each has its own symbol. Outer nodes are this category’s reports, spread around the semicircle by year. Hover a method to trace its reports."
-          : "Inner marks are research methods: each shape is a method, with the name beside it. Outer nodes are categories, sized by how many reports they hold. A curve means that method was used in that category. Line texture also marks category, not colour alone."}
+          ? "Inner marks are the methods used here — each has its own symbol. Hover a mark to read its name; the key on the right lists them all. Outer nodes are this category’s reports, spread around the semicircle by year."
+          : "Inner marks are research methods: each shape is a method, with the name beside it. See the key if a label is tight. Outer nodes are categories, sized by how many reports they hold. A curve means that method was used in that category. Line texture also marks category, not colour alone."}
       </p>
       <p className="body">
         {zoomedCategory
