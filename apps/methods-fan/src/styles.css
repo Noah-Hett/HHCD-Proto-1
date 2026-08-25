@@ -69,29 +69,32 @@
   pointer-events: none;
 }
 
-.fan-ribbon {
-  fill: none;
-  stroke-opacity: 0.55;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  pointer-events: none;
-}
-
 .fan-link {
   fill: none;
   stroke-width: 1.4;
-  stroke-opacity: 0;
+  stroke-opacity: 0.95;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+  display: none;
+}
+
+.fan.show-all-links .fan-link {
+  display: inline;
+  stroke-opacity: 0.28;
+}
+
+.fan-ribbon {
+  fill: none;
+  stroke-opacity: 0.72;
   stroke-linecap: round;
   stroke-linejoin: round;
   pointer-events: none;
 }
 
-.fan.show-all-links .fan-link {
-  stroke-opacity: 0.22;
-}
-
-.fan.show-all-links .fan-ribbon {
-  stroke-opacity: 0.08;
+.fan.show-all-links .fan-ribbon,
+.fan.is-focusing .fan-ribbon {
+  display: none;
 }
 
 .fan-node {
@@ -143,11 +146,11 @@
 }
 
 .fan.is-focusing .fan-ribbon {
-  stroke-opacity: 0.06;
+  display: none;
 }
 
 .fan.is-focusing .fan-ribbon.is-hot {
-  stroke-opacity: 0.2;
+  display: none;
 }
 
 .fan.is-focusing .fan-link {
@@ -156,21 +159,20 @@
 
 .fan.is-focusing .fan-link.is-hot,
 .fan.show-all-links.is-focusing .fan-link.is-hot {
+  display: inline;
   stroke-opacity: 0.95;
   stroke-width: 2;
 }
 
 .fan.is-focusing .fan-node,
-.fan.is-focusing .method-label,
-.fan.is-focusing .cat-label,
 .fan.is-focusing .fan-band,
 .fan.is-focusing .fan-wedge {
   opacity: 0.28;
 }
 
+.fan.is-focusing .method-label,
+.fan.is-focusing .cat-label,
 .fan.is-focusing .fan-node.is-hot,
-.fan.is-focusing .method-label.is-hot,
-.fan.is-focusing .cat-label.is-hot,
 .fan.is-focusing .fan-band.is-hot,
 .fan.is-focusing .fan-wedge.is-hot {
   opacity: 1;

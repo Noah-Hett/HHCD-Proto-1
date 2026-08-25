@@ -215,7 +215,7 @@ export function FanChart({ reports, focus, onFocus, onSelect, showAllLinks }) {
       .attr("class", "fan-ribbon")
       .attr("stroke", (d) => d.color)
       .attr("stroke-dasharray", (d) => d.dash || null)
-      .attr("stroke-width", (d) => 1.8 + 5.5 * Math.sqrt(d.count / maxRibbon))
+      .attr("stroke-width", (d) => 2.4 + 7 * Math.sqrt(d.count / maxRibbon))
       .attr("aria-hidden", "true");
 
     const linkSel = linksG
@@ -421,7 +421,7 @@ export function FanChart({ reports, focus, onFocus, onSelect, showAllLinks }) {
     }
 
     function ticked() {
-      const { cx, cy, angleStart, angleEnd, projectR } = metrics;
+      const { cx, cy, angleStart, angleEnd } = metrics;
       for (const d of nodes) {
         if (d.fx != null) continue;
         let a = Math.atan2(d.y - cy, d.x - cx);
@@ -435,12 +435,15 @@ export function FanChart({ reports, focus, onFocus, onSelect, showAllLinks }) {
         d.y = cy + d.ring * Math.sin(a);
       }
 
-      ribbonSel.attr("d", (d) =>
-        bentLink(cx, cy, {
-          source: d.method,
-          target: polar(cx, cy, projectR, d.category.mid),
-        }),
-      );
+      ribbonSel.attr("d", (d) => {
+        const members = d.projectIds
+          .map((id) => nodeById.get(id))
+          .filter(Boolean);
+        if (!members.length) return "";
+        const tx = members.reduce((sum, node) => sum + node.x, 0) / members.length;
+        const ty = members.reduce((sum, node) => sum + node.y, 0) / members.length;
+        return bentLink(cx, cy, { source: d.method, target: { x: tx, y: ty } });
+      });
       linkSel.attr("d", (d) => bentLink(cx, cy, d));
 
       nodeSel.attr("transform", (d) => `translate(${d.x},${d.y})`);

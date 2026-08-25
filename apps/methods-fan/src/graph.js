@@ -132,6 +132,10 @@ export function buildRibbons(graph) {
     for (const category of graph.categories) {
       const count = byCat.get(category.id);
       if (!count) continue;
+      const projectIds = method.projectIds.filter((id) => {
+        const project = projectById.get(id);
+        return project?.category === category.id;
+      });
       ribbons.push({
         id: `${method.id}→${category.id}`,
         methodId: method.id,
@@ -141,6 +145,7 @@ export function buildRibbons(graph) {
         dash: CATEGORY_DASH[category.id] ?? "",
         method,
         category,
+        projectIds,
       });
     }
   }
