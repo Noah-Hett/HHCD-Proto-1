@@ -374,12 +374,37 @@ export function FanChart({
       })
       .on("end", (event, d) => {
         if (!reduceMotion && !event.active) sim.alphaTarget(0);
-        d.fx = null;
-        d.fy = null;
+        if (d.kind === "method" || d.kind === "category") {
+          const { cx, cy, angleStart, angleEnd } = metrics;
+          let a = Math.atan2(d.y - cy, d.x - cx);
+          if (a > 0) a = a > Math.PI / 2 ? angleStart : angleEnd;
+          a = Math.max(angleStart, Math.min(angleEnd, a));
+          d.angle = a;
+          d.x = cx + d.ring * Math.cos(a);
+          d.y = cy + d.ring * Math.sin(a);
+          d.fx = d.x;
+          d.fy = d.y;
+        } else {
+          d.fx = null;
+          d.fy = null;
+        }
         if (reduceMotion) ticked();
       });
 
     nodeSel.call(drag);
+
+    function pinDesigned() {
+      const { cx, cy } = metrics;
+      for (const node of nodes) {
+        if (node.kind !== "method" && node.kind !== "category") continue;
+        node.x = cx + node.ring * Math.cos(node.angle);
+        node.y = cy + node.ring * Math.sin(node.angle);
+        node.fx = node.x;
+        node.fy = node.y;
+      }
+    }
+
+    pinDesigned();
 
     function emitFocus(item, event) {
       if (event) event.stopPropagation();
@@ -517,12 +542,17 @@ export function FanChart({
       const { cx, cy, angleStart, angleEnd } = metrics;
       for (const d of nodes) {
         if (d.fx != null) continue;
-        let a = Math.atan2(d.y - cy, d.x - cx);
-        if (a > 0) a = a > Math.PI / 2 ? angleStart : angleEnd;
-        if (d.kind === "project" && d.angleMin != null) {
-          a = Math.max(d.angleMin, Math.min(d.angleMax, a));
+        let a;
+        if (d.kind === "method" || d.kind === "category") {
+          a = d.angle;
         } else {
-          a = Math.max(angleStart, Math.min(angleEnd, a));
+          a = Math.atan2(d.y - cy, d.x - cx);
+          if (a > 0) a = a > Math.PI / 2 ? angleStart : angleEnd;
+          if (d.kind === "project" && d.angleMin != null) {
+            a = Math.max(d.angleMin, Math.min(d.angleMax, a));
+          } else {
+            a = Math.max(angleStart, Math.min(angleEnd, a));
+          }
         }
         d.x = cx + d.ring * Math.cos(a);
         d.y = cy + d.ring * Math.sin(a);
@@ -586,6 +616,7 @@ export function FanChart({
       nodeSel.select("circle.dot").attr("r", (d) => d.r);
       nodeSel.select("circle.hit").attr("r", (d) => Math.max(14, d.r + 8));
       applyMethodMarks(methodSel);
+      pinDesigned();
       sim
         .force("link")
         .distance(Math.max(24, metrics.projectR - metrics.innerR));

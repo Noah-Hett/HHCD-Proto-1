@@ -373,7 +373,7 @@ function placeZoomed(graph, metrics, categoryId) {
 
 function placeMethodNodes(methods, metrics, sizeOf) {
   const { cx, cy, innerR, outerR, angleStart, span, scale } = metrics;
-  const ringGap = Math.min(38, outerR * 0.11);
+  const ringGap = Math.min(48, outerR * 0.15);
   const start = angleStart + 0.14;
   const methodSpan = span - 0.28;
   methods.forEach((method, index) => {
