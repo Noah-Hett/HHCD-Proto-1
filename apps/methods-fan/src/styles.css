@@ -86,7 +86,7 @@
 
 .fan-ribbon {
   display: inline;
-  stroke-opacity: 0.5;
+  stroke-opacity: 0.4;
 }
 
 .fan.is-zoomed .fan-ribbon {

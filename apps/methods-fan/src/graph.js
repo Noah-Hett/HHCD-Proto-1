@@ -234,9 +234,9 @@ function baseMetrics(width, height) {
   const cx = width / 2;
   const cy = height - padBottom;
   const outerR = Math.max(72, Math.min(cx - padX, cy - padTop));
-  const innerR = outerR * 0.36;
-  const categoryR = outerR * 0.68;
-  const projectR = outerR * 0.8;
+  const innerR = outerR * 0.48;
+  const categoryR = outerR * 0.76;
+  const projectR = outerR * 0.84;
   const bandInner = outerR * 0.88;
   const bandOuter = outerR * 0.94;
   const angleStart = -Math.PI + 0.18;
@@ -373,7 +373,7 @@ function placeZoomed(graph, metrics, categoryId) {
 
 function placeMethodNodes(methods, metrics, sizeOf) {
   const { cx, cy, innerR, outerR, angleStart, span, scale } = metrics;
-  const ringGap = Math.min(48, outerR * 0.15);
+  const ringGap = Math.min(52, outerR * 0.12);
   const start = angleStart + 0.14;
   const methodSpan = span - 0.28;
   methods.forEach((method, index) => {

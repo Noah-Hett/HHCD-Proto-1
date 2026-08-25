@@ -584,8 +584,8 @@ export function FanChart({
         })
         .attr("transform", (d) => {
           const a = Math.atan2(d.y - cy, d.x - cx);
-          const stagger = 0;
-          const p = polar(cx, cy, d.ring + d.r + 10, a);
+          const inward = Math.max(28, d.ring - d.r - 14);
+          const p = polar(cx, cy, inward, a);
           return `translate(${p.x},${p.y})`;
         });
 
