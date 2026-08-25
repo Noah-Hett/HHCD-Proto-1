@@ -31,7 +31,7 @@ export const DETAIL_FIELDS = [
   { key: "title", label: "Title" },
   { key: "author", label: "Author" },
   { key: "year", label: "Year" },
-  { key: "reportNo", label: "Report number" },
+  { key: "reportNo", label: "Report no." },
   { key: "category", label: "Category" },
   { key: "projectType", label: "Project type" },
   { key: "description", label: "Description" },

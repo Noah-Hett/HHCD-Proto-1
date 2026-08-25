@@ -39,7 +39,7 @@ function FieldValue({ field, report, reportsById, onSelect }) {
           if (!target) {
             return (
               <li key={id}>
-                Report {id} <span className="empty">(not in catalogue)</span>
+                Report no. {id} <span className="empty">(not in catalogue)</span>
               </li>
             );
           }
@@ -48,7 +48,7 @@ function FieldValue({ field, report, reportsById, onSelect }) {
               <button type="button" className="text-link" onClick={() => onSelect(target)}>
                 {target.title}
               </button>
-              <span className="muted"> ({id})</span>
+              <span className="muted"> (Report no. {id})</span>
             </li>
           );
         })}
@@ -131,7 +131,7 @@ function SidePanel({ report, reportsById, onClose, onSelect }) {
                     >
                       {item.report.title}
                     </button>
-                    <span className="muted"> ({item.reasons.join(", ")})</span>
+                    <span className="muted"> (Report no. {item.report.reportNo} · {item.reasons.join(", ")})</span>
                   </li>
                 ))}
               </ul>
@@ -317,7 +317,7 @@ export default function App() {
                       tabIndex={0}
                       role="button"
                       aria-pressed={selectedId === node.id}
-                      aria-label={`${node.report.title}. ${node.report.author}. ${node.report.year}. ${node.report.category}.`}
+                      aria-label={`Report no. ${node.report.reportNo}. ${node.report.title}. ${node.report.author}. ${node.report.year}. ${node.report.category}.`}
                       ref={(element) => {
                         if (element) nodeRefs.current.set(node.id, element);
                         else nodeRefs.current.delete(node.id);
@@ -352,12 +352,15 @@ export default function App() {
                         }
                       }}
                     >
-                      <circle className="hit" r={NODE_RADIUS + 6} />
+                      <circle className="hit" r={NODE_RADIUS + 2} />
                       <circle
                         className="dot"
                         r={NODE_RADIUS}
                         fill={colorForCategory(node.report.category)}
                       />
+                      <text className="dot-label" x={NODE_RADIUS + 4} y="3.5">
+                        {node.report.reportNo}
+                      </text>
                     </g>
                   );
                 })}
@@ -383,6 +386,7 @@ export default function App() {
           style={{ left: tooltip.left, top: tooltip.top }}
         >
           <strong>{tooltip.report.title}</strong>
+          <span>Report no. {tooltip.report.reportNo}</span>
           <span>{tooltip.report.author}</span>
         </div>
       ) : null}

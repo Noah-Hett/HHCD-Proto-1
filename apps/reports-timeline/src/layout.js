@@ -1,5 +1,5 @@
 export const NODE_RADIUS = 7;
-const GAP = 5;
+const GAP = 8;
 
 function hashString(value) {
   let hash = 2166136261;
@@ -65,19 +65,6 @@ export function layoutReports(reports, { width, height, margin, yearRange }) {
     }
     for (const node of nodes) {
       node.y = Math.min(yMax, Math.max(yMin, node.y));
-    }
-  }
-
-  for (let i = 0; i < nodes.length; i += 1) {
-    for (let j = i + 1; j < nodes.length; j += 1) {
-      const a = nodes[i];
-      const b = nodes[j];
-      const dist = Math.hypot(b.x - a.x, b.y - a.y);
-      if (dist >= minDist) continue;
-      const rng = mulberry32(hashString(`${a.id}:${b.id}`));
-      const jitter = 6 + rng() * 8;
-      a.x -= jitter / 2;
-      b.x += jitter / 2;
     }
   }
 

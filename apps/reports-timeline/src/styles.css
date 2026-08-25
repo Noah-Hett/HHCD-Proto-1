@@ -135,6 +135,17 @@
   stroke-width: 1.2;
 }
 
+.dot-label {
+  font-size: 9px;
+  font-weight: 650;
+  font-family: var(--font);
+  fill: #111;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 3px;
+  pointer-events: none;
+}
+
 .node.active .dot,
 .node:focus-visible .dot {
   stroke-width: 2.25;
