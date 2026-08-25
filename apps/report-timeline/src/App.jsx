@@ -124,7 +124,7 @@ export default function App() {
       if (!rect) return;
       setSize({
         width: Math.max(rect.width, MIN_CHART_WIDTH),
-        height: Math.max(rect.height, 420),
+        height: Math.max(rect.height, 1),
       });
     });
     observer.observe(node);
@@ -170,7 +170,7 @@ export default function App() {
   const ticks = yearTicks(yearRange.min, yearRange.max, size.width);
 
   return (
-    <Shell title="Report timeline">
+    <Shell fill title="Report timeline">
       <div className={`workspace${selected ? " has-panel" : ""}`}>
         <div className="toolbar">
           <p className="status">
@@ -215,8 +215,8 @@ export default function App() {
               <svg
                 className="chart"
                 width={size.width}
-                height={laidOut.height}
-                viewBox={`0 0 ${size.width} ${laidOut.height}`}
+                height={size.height}
+                viewBox={`0 0 ${size.width} ${size.height}`}
                 role="img"
                 aria-label="Timeline of research associate reports by year"
                 onClick={() => setSelectedId(null)}
@@ -230,9 +230,9 @@ export default function App() {
                         x1={x}
                         x2={x}
                         y1={MARGIN.top}
-                        y2={laidOut.height - MARGIN.bottom}
+                        y2={size.height - MARGIN.bottom}
                       />
-                      <text className="tick" x={x} y={laidOut.height - 14} textAnchor="middle">
+                      <text className="tick" x={x} y={size.height - 14} textAnchor="middle">
                         {year}
                       </text>
                     </g>

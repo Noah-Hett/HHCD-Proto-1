@@ -1,5 +1,5 @@
 export const NODE_RADIUS = 7;
-export const MIN_GAP = NODE_RADIUS * 2 + 12;
+export const MIN_GAP = NODE_RADIUS * 2 + 20;
 export const LINE_CLEARANCE = NODE_RADIUS + 6;
 export const CURVE_OFFSET = 12;
 
@@ -207,10 +207,11 @@ export function layoutGraph(graph, { width, height, margin, yearRange }) {
     ...[...columns.values()].map((blocks) => blocks.reduce((sum, block) => sum + block.length, 0)),
     1,
   );
-  const gap = MIN_GAP;
-  const needed = margin.top + margin.bottom + maxCount * gap + 120;
-  const chartHeight = Math.max(height, needed);
+  const chartHeight = Math.max(height, 1);
   const yMin = margin.top + NODE_RADIUS;
+  const yBottom = chartHeight - margin.bottom - NODE_RADIUS;
+  const usable = Math.max(yBottom - yMin, MIN_GAP);
+  const gap = Math.max(MIN_GAP, usable / maxCount);
 
   for (const node of nodes) {
     node.x = yearX(node.year, width, margin, yearRange);
@@ -263,10 +264,16 @@ export function layoutGraph(graph, { width, height, margin, yearRange }) {
   if (extra !== 0) {
     for (const node of nodes) node.y += extra;
     maxY += extra;
+    minY = yMin;
   }
-  const finalHeight = Math.max(chartHeight, maxY + margin.bottom + NODE_RADIUS + 12);
+  if (maxY > yBottom && maxY > minY) {
+    const scale = (yBottom - minY) / (maxY - minY);
+    for (const node of nodes) {
+      node.y = minY + (node.y - minY) * scale;
+    }
+  }
 
-  return { nodes, height: finalHeight };
+  return { nodes, height: chartHeight };
 }
 
 export function linePath(a, b) {
