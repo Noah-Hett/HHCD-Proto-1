@@ -141,6 +141,22 @@ export function neighborsOf(reportId, links) {
   return { nodes, edgeIds };
 }
 
+export function linkedReports(reportId, graphLinks, reportsById) {
+  const items = [];
+  for (const link of graphLinks) {
+    if (link.source !== reportId && link.target !== reportId) continue;
+    const otherId = link.source === reportId ? link.target : link.source;
+    const report = reportsById.get(otherId);
+    if (!report) continue;
+    const reasons = [];
+    if (link.reportConnection) reasons.push("project connection");
+    if (link.sharedAuthor) reasons.push("shared author");
+    items.push({ report, reasons });
+  }
+  items.sort((a, b) => a.report.title.localeCompare(b.report.title));
+  return items;
+}
+
 export function displayValue(report, key) {
   if (key === "methods") {
     if (report.methodsNarrative) return report.methodsNarrative;

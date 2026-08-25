@@ -9,6 +9,7 @@ import {
   colorForCategory,
   displayValue,
   isHttpUrl,
+  linkedReports,
   neighborsOf,
   parseConnectionIds,
 } from "./graph.js";
@@ -69,6 +70,7 @@ function FieldValue({ field, report, reportsById, onSelect }) {
 
 function SidePanel({ report, reportsById, onClose, onSelect }) {
   const closeRef = useRef(null);
+  const graphLinks = linkedReports(report.reportNo, links, reportsById);
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -115,6 +117,29 @@ function SidePanel({ report, reportsById, onClose, onSelect }) {
             </dd>
           </div>
         ))}
+        <div className="field">
+          <dt>Linked in this view</dt>
+          <dd>
+            {graphLinks.length ? (
+              <ul className="connection-list">
+                {graphLinks.map((item) => (
+                  <li key={item.report.reportNo}>
+                    <button
+                      type="button"
+                      className="text-link"
+                      onClick={() => onSelect(item.report)}
+                    >
+                      {item.report.title}
+                    </button>
+                    <span className="muted"> ({item.reasons.join(", ")})</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <span className="empty">No project or author links</span>
+            )}
+          </dd>
+        </div>
       </dl>
     </aside>
   );
