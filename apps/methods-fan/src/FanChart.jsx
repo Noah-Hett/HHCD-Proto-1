@@ -23,6 +23,13 @@ function ringPath(cx, cy, radius, a0, a1) {
   return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${large} 1 ${end.x} ${end.y}`;
 }
 
+function lerpAngle(a, b, t) {
+  let delta = b - a;
+  while (delta > Math.PI) delta -= 2 * Math.PI;
+  while (delta < -Math.PI) delta += 2 * Math.PI;
+  return a + delta * t;
+}
+
 function bentLink(cx, cy, d) {
   const source = d.source;
   const target = d.target;
@@ -35,10 +42,8 @@ function bentLink(cx, cy, d) {
   const ta = Math.atan2(ty - cy, tx - cx);
   const sr = Math.hypot(sx - cx, sy - cy);
   const tr = Math.hypot(tx - cx, ty - cy);
-  const cr = (sr + tr) / 2;
-  const c1 = polar(cx, cy, cr, sa);
-  const c2 = polar(cx, cy, cr, ta);
-  return `M${sx},${sy} C${c1.x},${c1.y} ${c2.x},${c2.y} ${tx},${ty}`;
+  const mid = polar(cx, cy, (sr + tr) / 2, lerpAngle(sa, ta, 0.5));
+  return `M${sx},${sy} Q${mid.x},${mid.y} ${tx},${ty}`;
 }
 
 function applyFocus(svgEl, focus, nodeById, categories) {
