@@ -10,7 +10,7 @@
     {
       "id": "methods-fan",
       "title": "Methods fan",
-      "goal": "See how each research method branches into reports, arranged by category around a force-directed fan.",
+      "goal": "See how each research method links into category nodes, then zoom a category to scatter its reports around the fan.",
       "owner": "Noah",
       "status": "draft"
     }

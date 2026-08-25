@@ -54,6 +54,11 @@
   cursor: pointer;
 }
 
+.fan.is-zoomed .fan-wedge {
+  cursor: default;
+  pointer-events: none;
+}
+
 .fan-band {
   fill-opacity: 1;
   stroke: #111;
@@ -79,22 +84,18 @@
   display: none;
 }
 
-.fan.show-all-links .fan-link {
-  display: inline;
-  stroke-opacity: 0.28;
-}
-
 .fan-ribbon {
-  fill: none;
-  stroke-opacity: 0.72;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  pointer-events: none;
+  display: inline;
+  stroke-opacity: 0.5;
 }
 
-.fan.show-all-links .fan-ribbon,
-.fan.is-focusing .fan-ribbon {
+.fan.is-zoomed .fan-ribbon {
   display: none;
+}
+
+.fan.is-zoomed .fan-link {
+  display: inline;
+  stroke-opacity: 0.2;
 }
 
 .fan-node {
@@ -128,17 +129,42 @@
   stroke-width: 1.8;
 }
 
+.fan-node.is-category .dot {
+  stroke-width: 1.6;
+}
+
+.cat-count {
+  font-size: 12px;
+  font-weight: 700;
+  fill: #fff;
+  stroke: #111;
+  stroke-width: 3px;
+  paint-order: stroke fill;
+  pointer-events: none;
+}
+
+.fan-node:not(.is-category) .cat-count {
+  display: none;
+}
+
 .method-label,
-.cat-label {
+.cat-label,
+.outer-label {
   font-size: 11px;
   fill: var(--text);
   pointer-events: none;
 }
 
-.cat-label {
+.cat-label,
+.outer-label {
   font-size: 12px;
   font-weight: 600;
   fill: var(--text);
+}
+
+.fan.is-zoomed .outer-label {
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .method-label {
@@ -146,20 +172,18 @@
 }
 
 .fan.is-focusing .fan-ribbon {
-  display: none;
+  stroke-opacity: 0.12;
 }
 
 .fan.is-focusing .fan-ribbon.is-hot {
-  display: none;
+  stroke-opacity: 0.95;
 }
 
-.fan.is-focusing .fan-link {
-  stroke-opacity: 0;
+.fan.is-zoomed.is-focusing .fan-link {
+  stroke-opacity: 0.08;
 }
 
-.fan.is-focusing .fan-link.is-hot,
-.fan.show-all-links.is-focusing .fan-link.is-hot {
-  display: inline;
+.fan.is-zoomed.is-focusing .fan-link.is-hot {
   stroke-opacity: 0.95;
   stroke-width: 2;
 }
@@ -172,6 +196,7 @@
 
 .fan.is-focusing .method-label,
 .fan.is-focusing .cat-label,
+.fan.is-focusing .outer-label,
 .fan.is-focusing .fan-node.is-hot,
 .fan.is-focusing .fan-band.is-hot,
 .fan.is-focusing .fan-wedge.is-hot {
@@ -185,6 +210,25 @@
 .fan.is-focusing .fan-node.is-hot .dot {
   stroke: #111;
   stroke-width: 2;
+}
+
+.zoom-back {
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  z-index: 2;
+  min-height: 32px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.zoom-back:hover {
+  background: var(--hover);
 }
 
 .panel {
@@ -238,7 +282,8 @@
 .legend button:focus-visible,
 .hits button:focus-visible,
 .chips button:focus-visible,
-.web a:focus-visible {
+.web a:focus-visible,
+.zoom-back:focus-visible {
   outline: 3px solid #111;
   outline-offset: 2px;
 }
@@ -433,8 +478,18 @@
     stroke: Canvas;
   }
 
+  .cat-count {
+    fill: Canvas;
+  }
+
   .fan-wedge {
     fill: GrayText;
+  }
+
+  .zoom-back {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
   }
 }
 

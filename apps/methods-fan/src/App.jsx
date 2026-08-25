@@ -18,28 +18,59 @@ export default function App() {
   const graph = useMemo(() => buildGraph(reports), []);
   const [pinned, setPinned] = useState(null);
   const [hovered, setHovered] = useState(null);
-  const [showAllLinks, setShowAllLinks] = useState(false);
+  const [zoomedCategory, setZoomedCategory] = useState(null);
 
   const onFocus = useCallback((item) => setHovered(refOf(item)), []);
-  const onSelect = useCallback((item) => {
-    const next = refOf(item);
-    setPinned((prev) => (next && sameRef(prev, next) ? null : next));
+  const onZoom = useCallback((categoryId) => {
+    setZoomedCategory(categoryId);
+    setPinned(null);
+    setHovered(null);
   }, []);
+  const onSelect = useCallback(
+    (item) => {
+      const next = refOf(item);
+      if (!next) {
+        setPinned(null);
+        return;
+      }
+      if (next.kind === "category") {
+        setZoomedCategory((current) => (current === next.id ? null : next.id));
+        setPinned(null);
+        setHovered(null);
+        return;
+      }
+      if (next.kind === "project") {
+        const project =
+          graph.projects.find((entry) => entry.id === next.id) ?? item;
+        if (project?.category) setZoomedCategory(project.category);
+      }
+      setPinned((prev) => (next && sameRef(prev, next) ? null : next));
+    },
+    [graph.projects],
+  );
 
   useEffect(() => {
     const onKey = (event) => {
-      if (event.key === "Escape") {
+      if (event.key !== "Escape") return;
+      if (pinned) {
         setPinned(null);
-        setHovered(null);
+        return;
       }
+      if (zoomedCategory) {
+        setZoomedCategory(null);
+        setHovered(null);
+        return;
+      }
+      setHovered(null);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [pinned, zoomedCategory]);
 
   const focus = hovered ?? pinned;
-  const detail = resolveDetail(graph, pinned ?? hovered);
-  const status = statusText(graph, pinned);
+  const detail = resolveDetail(graph, pinned ?? hovered, zoomedCategory);
+  const status = statusText(graph, pinned, zoomedCategory);
+  const zoomed = graph.categories.find((item) => item.id === zoomedCategory);
 
   return (
     <Shell fill title="Methods fan">
@@ -50,44 +81,35 @@ export default function App() {
             focus={focus}
             onFocus={onFocus}
             onSelect={onSelect}
-            showAllLinks={showAllLinks}
+            zoomedCategory={zoomedCategory}
+            onZoom={onZoom}
           />
         </div>
         <aside className="panel">
           <p className="kicker" id="fan-summary">
-            {graph.methods.length} methods · {graph.projects.length} reports ·{" "}
-            {graph.links.length} links
+            {zoomed
+              ? `${zoomed.count} reports in ${zoomed.label}`
+              : `${graph.methods.length} methods · ${graph.categories.length} categories · ${graph.projects.length} reports`}
           </p>
           <p className="sr-only" role="status" aria-live="polite">
             {status}
           </p>
-          <button
-            type="button"
-            className="link-toggle"
-            aria-pressed={showAllLinks}
-            onClick={() => setShowAllLinks((value) => !value)}
-          >
-            {showAllLinks
-              ? "Hide individual connections"
-              : "Show all individual connections"}
-          </button>
           <ul className="legend">
             {graph.categories.map((category) => {
-              const pressed =
-                pinned?.kind === "category" && pinned.id === category.id;
+              const pressed = zoomedCategory === category.id;
               return (
                 <li key={category.id}>
                   <button
                     type="button"
                     className={pressed ? "active" : ""}
                     aria-pressed={pressed}
-                    aria-label={`${category.label}, ${category.count} reports`}
-                    onClick={() =>
-                      onSelect({ kind: "category", id: category.id })
-                    }
-                    onMouseEnter={() =>
-                      setHovered({ kind: "category", id: category.id })
-                    }
+                    aria-label={`${category.label}, ${category.count} reports. ${pressed ? "Showing reports. Activate to go back." : "Activate to zoom in."}`}
+                    onClick={() => onSelect({ kind: "category", id: category.id })}
+                    onMouseEnter={() => {
+                      if (!zoomedCategory) {
+                        setHovered({ kind: "category", id: category.id });
+                      }
+                    }}
                     onMouseLeave={() => setHovered(null)}
                   >
                     <i
@@ -121,42 +143,44 @@ export default function App() {
               );
             })}
           </ul>
-          <Detail detail={detail} graph={graph} onSelect={onSelect} />
+          <Detail
+            detail={detail}
+            graph={graph}
+            onSelect={onSelect}
+            zoomedCategory={zoomedCategory}
+          />
         </aside>
       </div>
     </Shell>
   );
 }
 
-function statusText(graph, pinned) {
-  if (!pinned) return "Showing method to category summaries.";
-  if (pinned.kind === "method") {
+function statusText(graph, pinned, zoomedCategory) {
+  if (pinned?.kind === "method") {
     const method = graph.methods.find((item) => item.id === pinned.id);
-    return method
-      ? `${method.label} pinned, used in ${method.count} reports.`
-      : "";
+    return method ? `${method.label} selected.` : "";
   }
-  if (pinned.kind === "project") {
+  if (pinned?.kind === "project") {
     const project = graph.projects.find((item) => item.id === pinned.id);
-    return project ? `${project.title} pinned.` : "";
+    return project ? `${project.title} selected.` : "";
   }
-  if (pinned.kind === "category") {
-    const category = graph.categories.find((item) => item.id === pinned.id);
-    return category
-      ? `${category.label} pinned, ${category.count} reports.`
-      : "";
+  if (zoomedCategory) {
+    return `Zoomed into ${zoomedCategory}. Escape returns to all categories.`;
   }
-  return "";
+  return "Showing methods linked to category nodes. Activate a category to zoom in.";
 }
 
-function resolveDetail(graph, ref) {
+function resolveDetail(graph, ref, zoomedCategory) {
   if (!ref) return { kind: "intro" };
   if (ref.kind === "method") {
     const method = graph.methods.find((item) => item.id === ref.id);
     if (!method) return { kind: "intro" };
     const connected = method.projectIds
       .map((id) => graph.projects.find((project) => project.id === id))
-      .filter(Boolean);
+      .filter(Boolean)
+      .filter((project) =>
+        zoomedCategory ? project.category === zoomedCategory : true,
+      );
     return { kind: "method", method, connected };
   }
   if (ref.kind === "project") {
@@ -176,22 +200,21 @@ function resolveDetail(graph, ref) {
   return { kind: "intro" };
 }
 
-function Detail({ detail, graph, onSelect }) {
+function Detail({ detail, graph, onSelect, zoomedCategory }) {
   if (detail.kind === "method") {
     return (
       <div className="detail">
         <h1>{detail.method.label}</h1>
         <p className="lede">
-          Used in {detail.method.count} of {graph.projects.length} reports.
+          {zoomedCategory
+            ? `Used in ${detail.connected.length} reports in this category.`
+            : `Used in ${detail.method.count} of ${graph.projects.length} reports.`}
         </p>
         <ul className="hits">
           {detail.connected.map((project) => (
             <li key={project.id}>
               <button type="button" onClick={() => onSelect(project)}>
-                <i
-                  style={{ background: project.color }}
-                  aria-hidden="true"
-                />
+                <i style={{ background: project.color }} aria-hidden="true" />
                 <span>
                   <strong>{project.title}</strong>
                   <em>
@@ -256,17 +279,15 @@ function Detail({ detail, graph, onSelect }) {
       <div className="detail">
         <h1>{detail.category.label}</h1>
         <p className="lede">
-          {detail.connected.length} reports on the outer arc, left to right by
-          year.
+          {zoomedCategory === detail.category.id
+            ? `${detail.connected.length} reports around the semicircle, left to right by year.`
+            : `${detail.connected.length} reports. Activate to zoom in and scatter them around the fan.`}
         </p>
         <ul className="hits">
           {detail.connected.map((project) => (
             <li key={project.id}>
               <button type="button" onClick={() => onSelect(project)}>
-                <i
-                  style={{ background: project.color }}
-                  aria-hidden="true"
-                />
+                <i style={{ background: project.color }} aria-hidden="true" />
                 <span>
                   <strong>{project.title}</strong>
                   <em>
@@ -284,16 +305,16 @@ function Detail({ detail, graph, onSelect }) {
 
   return (
     <div className="detail">
-      <h1>How to read this</h1>
+      <h1>{zoomedCategory ? "This category" : "How to read this"}</h1>
       <p className="lede">
-        Inner nodes are research methods, sized by use. Outer nodes are the 62
-        reports, grouped by category. At rest, each curve is a method–category
-        summary — thicker means more reports. Line texture also marks category,
-        not colour alone.
+        {zoomedCategory
+          ? "Inner nodes are the methods used here. Outer nodes are this category’s reports, spread around the semicircle by year. Hover a method to trace its reports."
+          : "Inner nodes are research methods. Outer nodes are categories, sized by how many reports they hold. A curve means that method was used in that category. Line texture also marks category, not colour alone."}
       </p>
       <p className="body">
-        Hover, tab, or arrow-key a method to see its individual report links.
-        Enter or click to pin. Esc or click the background to clear.
+        {zoomedCategory
+          ? "Click a report for its details. All categories or Escape goes back."
+          : "Click a category node or the list to zoom in. Tab or arrow-key methods. Escape clears."}
       </p>
     </div>
   );
