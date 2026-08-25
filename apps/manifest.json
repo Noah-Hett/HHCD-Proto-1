@@ -3,9 +3,16 @@
     {
       "id": "overview",
       "title": "Dataset overview",
-      "goal": "See all 62 reports at a glance \u2014 categories, years, and a filterable catalogue.",
+      "goal": "See all 62 reports at a glance — categories, years, and a filterable catalogue.",
       "owner": "shared",
       "status": "live"
+    },
+    {
+      "id": "report-timeline",
+      "title": "Report timeline",
+      "goal": "See when associate reports were published and how project citations and author successions connect them.",
+      "owner": "Nayana Crowe",
+      "status": "draft"
     }
   ]
 }
