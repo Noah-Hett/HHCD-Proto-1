@@ -442,7 +442,14 @@ export function FanChart({ reports, focus, onFocus, onSelect, showAllLinks }) {
         if (!members.length) return "";
         const tx = members.reduce((sum, node) => sum + node.x, 0) / members.length;
         const ty = members.reduce((sum, node) => sum + node.y, 0) / members.length;
-        return bentLink(cx, cy, { source: d.method, target: { x: tx, y: ty } });
+        const sa = Math.atan2(d.method.y - cy, d.method.x - cx);
+        const start = polar(
+          cx,
+          cy,
+          d.method.ring + Math.max(14, d.method.r + 6),
+          sa,
+        );
+        return bentLink(cx, cy, { source: start, target: { x: tx, y: ty } });
       });
       linkSel.attr("d", (d) => bentLink(cx, cy, d));
 
