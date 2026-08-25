@@ -1,0 +1,322 @@
+@import "@hhcd/theme/tokens.css";
+
+.shell-main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.page {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  background: var(--bg);
+}
+
+.stage {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.fan-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.fan {
+  display: block;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+  cursor: default;
+}
+
+.fan-caption {
+  position: absolute;
+  left: 16px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.fan-wedge {
+  fill-opacity: 0.055;
+  stroke: none;
+  cursor: pointer;
+}
+
+.fan-band {
+  fill-opacity: 0.9;
+  pointer-events: none;
+}
+
+.guide {
+  fill: none;
+  stroke: var(--text);
+  stroke-opacity: 0.12;
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+.fan-link {
+  fill: none;
+  stroke-width: 1;
+  stroke-opacity: 0.22;
+  pointer-events: none;
+}
+
+.fan-node {
+  cursor: pointer;
+}
+
+.fan-node .hit {
+  fill: transparent;
+}
+
+.fan-node .dot {
+  stroke: #fff;
+  stroke-width: 1.2;
+}
+
+.fan-node.is-method .dot {
+  stroke-width: 1.6;
+}
+
+.method-label,
+.cat-label {
+  font-size: 10px;
+  fill: var(--text);
+  pointer-events: none;
+}
+
+.cat-label {
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--text);
+}
+
+.method-label {
+  fill: var(--muted);
+}
+
+.fan.is-focusing .fan-link {
+  stroke-opacity: 0.04;
+}
+
+.fan.is-focusing .fan-link.is-hot {
+  stroke-opacity: 0.92;
+  stroke-width: 1.6;
+}
+
+.fan.is-focusing .fan-node,
+.fan.is-focusing .method-label,
+.fan.is-focusing .cat-label,
+.fan.is-focusing .fan-band,
+.fan.is-focusing .fan-wedge {
+  opacity: 0.18;
+}
+
+.fan.is-focusing .fan-node.is-hot,
+.fan.is-focusing .method-label.is-hot,
+.fan.is-focusing .cat-label.is-hot,
+.fan.is-focusing .fan-band.is-hot,
+.fan.is-focusing .fan-wedge.is-hot {
+  opacity: 1;
+}
+
+.fan.is-focusing .fan-wedge.is-hot {
+  fill-opacity: 0.12;
+}
+
+.fan.is-focusing .fan-node.is-hot .dot {
+  stroke: #111;
+}
+
+.panel {
+  box-sizing: border-box;
+  width: 300px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  overflow: auto;
+  padding: 14px 16px 24px;
+}
+
+.kicker {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.legend {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+}
+
+.legend button,
+.hits button,
+.chips button {
+  font: inherit;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+}
+
+.legend button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12px;
+}
+
+.legend button:hover,
+.legend button.active {
+  background: var(--hover);
+}
+
+.hits button:hover,
+.chips button:hover {
+  background: var(--hover);
+}
+
+.legend i,
+.hits i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend span {
+  margin-left: auto;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.detail h1 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.detail h2 {
+  margin: 14px 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.lede,
+.body {
+  margin: 0 0 10px;
+  font-size: 13px;
+}
+
+.body {
+  color: var(--muted);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.pill {
+  padding: 1px 7px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.hits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hits button {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 7px 4px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.hits strong {
+  display: block;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.hits em {
+  display: block;
+  margin-top: 2px;
+  font-style: normal;
+  color: var(--muted);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+.chips button {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  padding: 3px 8px;
+  font-size: 12px;
+}
+
+.web {
+  margin: 12px 0 0;
+  font-size: 12px;
+}
+
+.web a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 840px) {
+  .page {
+    flex-direction: column;
+  }
+
+  .stage {
+    min-height: 58vh;
+  }
+
+  .panel {
+    width: 100%;
+    max-height: 42vh;
+    border-left: 0;
+    border-top: 1px solid var(--border);
+  }
+}
