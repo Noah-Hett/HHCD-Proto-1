@@ -35,7 +35,7 @@ function bentLink(cx, cy, d) {
   const ta = Math.atan2(ty - cy, tx - cx);
   const sr = Math.hypot(sx - cx, sy - cy);
   const tr = Math.hypot(tx - cx, ty - cy);
-  const cr = sr + (tr - sr) * 0.58;
+  const cr = (sr + tr) / 2;
   const c1 = polar(cx, cy, cr, sa);
   const c2 = polar(cx, cy, cr, ta);
   return `M${sx},${sy} C${c1.x},${c1.y} ${c2.x},${c2.y} ${tx},${ty}`;
