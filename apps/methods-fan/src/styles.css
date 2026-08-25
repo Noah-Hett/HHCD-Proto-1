@@ -126,7 +126,25 @@
 }
 
 .fan-node.is-method .dot {
+  fill: #f4efe6;
+  stroke-width: 1.6;
+}
+
+.fan-node:not(.is-method) .method-mark {
+  display: none;
+}
+
+.method-mark.is-fill {
+  fill: #111;
+  stroke: none;
+}
+
+.method-mark.is-stroke {
+  fill: none;
+  stroke: #111;
   stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .fan-node.is-category .dot {
@@ -155,6 +173,16 @@
   pointer-events: none;
 }
 
+.method-label {
+  font-size: 12px;
+  font-weight: 600;
+  fill: #111;
+  stroke: var(--bg);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+  paint-order: stroke fill;
+}
+
 .cat-label,
 .outer-label {
   font-size: 12px;
@@ -165,10 +193,6 @@
 .fan.is-zoomed .outer-label {
   font-size: 11px;
   font-weight: 500;
-}
-
-.method-label {
-  fill: var(--text);
 }
 
 .fan.is-focusing .fan-ribbon {
@@ -280,6 +304,7 @@
 
 .link-toggle:focus-visible,
 .legend button:focus-visible,
+.method-key button:focus-visible,
 .hits button:focus-visible,
 .chips button:focus-visible,
 .web a:focus-visible,
@@ -290,13 +315,32 @@
 
 .legend {
   list-style: none;
-  margin: 0 0 16px;
+  margin: 0 0 12px;
   padding: 0;
   border-bottom: 1px solid var(--border);
   padding-bottom: 10px;
 }
 
+.key-label {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.method-key {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 0 16px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+
 .legend button,
+.method-key button,
 .hits button,
 .chips button {
   font: inherit;
@@ -319,8 +363,34 @@
 }
 
 .legend button:hover,
-.legend button.active {
+.legend button.active,
+.method-key button:hover,
+.method-key button.active {
   background: var(--hover);
+}
+
+.method-key button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px 5px 6px;
+  min-height: 32px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-size: 12px;
+}
+
+.method-glyph.is-fill path {
+  fill: #111;
+  stroke: none;
+}
+
+.method-glyph.is-stroke path {
+  fill: none;
+  stroke: #111;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .hits button:hover,
@@ -474,6 +544,26 @@
 
   .fan-node .dot,
   .fan-band {
+    fill: CanvasText;
+    stroke: Canvas;
+  }
+
+  .fan-node.is-method .dot {
+    fill: Canvas;
+    stroke: CanvasText;
+  }
+
+  .method-mark.is-fill,
+  .method-glyph.is-fill path {
+    fill: CanvasText;
+  }
+
+  .method-mark.is-stroke,
+  .method-glyph.is-stroke path {
+    stroke: CanvasText;
+  }
+
+  .method-label {
     fill: CanvasText;
     stroke: Canvas;
   }

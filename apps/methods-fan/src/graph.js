@@ -1,3 +1,19 @@
+import {
+  symbol,
+  symbolAsterisk,
+  symbolCircle,
+  symbolDiamond,
+  symbolDiamond2,
+  symbolPlus,
+  symbolSquare,
+  symbolSquare2,
+  symbolStar,
+  symbolTriangle,
+  symbolTriangle2,
+  symbolWye,
+  symbolTimes,
+} from "d3";
+
 export const CATEGORY_ORDER = [
   "Transport",
   "Mobility and Transport",
@@ -26,13 +42,41 @@ const FALLBACK_COLOR = "#555";
 
 export const METHOD_SHORT = {
   "Individual Interviews": "Interviews",
-  "Mockups and Rapid Prototyping": "Mockups",
-  "Critical User Forums": "User forums",
+  "Observation": "Observation",
   "Desk Research": "Desk research",
+  "Workshops": "Workshops",
+  "Scenarios": "Scenarios",
+  "Mapping": "Mapping",
   "Focus Groups": "Focus groups",
+  "Mockups and Rapid Prototyping": "Mockups",
   "Co-Design": "Co-design",
-  "Role Playing": "Role playing",
+  "Personas": "Personas",
+  "Role Playing": "Role play",
+  "Critical User Forums": "Forums",
 };
+
+const METHOD_MARK_SPEC = {
+  "Individual Interviews": { type: symbolCircle, ink: "fill" },
+  Observation: { type: symbolAsterisk, ink: "stroke" },
+  "Desk Research": { type: symbolSquare, ink: "fill" },
+  Workshops: { type: symbolWye, ink: "fill" },
+  Scenarios: { type: symbolTriangle, ink: "fill" },
+  Mapping: { type: symbolPlus, ink: "stroke" },
+  "Focus Groups": { type: symbolDiamond, ink: "fill" },
+  "Mockups and Rapid Prototyping": { type: symbolSquare2, ink: "stroke" },
+  "Co-Design": { type: symbolStar, ink: "fill" },
+  Personas: { type: symbolDiamond2, ink: "stroke" },
+  "Role Playing": { type: symbolTriangle2, ink: "stroke" },
+  "Critical User Forums": { type: symbolTimes, ink: "stroke" },
+};
+
+export function methodMark(name, size = 100) {
+  const spec = METHOD_MARK_SPEC[name] ?? { type: symbolCircle, ink: "fill" };
+  return {
+    d: symbol().type(spec.type).size(size)(),
+    ink: spec.ink,
+  };
+}
 
 export function categoryColor(category) {
   return CATEGORY_COLORS[category] ?? FALLBACK_COLOR;
@@ -64,6 +108,7 @@ export function buildGraph(reports) {
           kind: "method",
           label: name,
           short: METHOD_SHORT[name] ?? name,
+          mark: methodMark(name, 100),
           count: 0,
           projectIds: [],
           r: 8,
@@ -183,15 +228,15 @@ export function linksForView(graph, zoomedCategory) {
 }
 
 function baseMetrics(width, height) {
-  const padX = 58;
+  const padX = 86;
   const padTop = 56;
   const padBottom = 22;
   const cx = width / 2;
   const cy = height - padBottom;
   const outerR = Math.max(72, Math.min(cx - padX, cy - padTop));
-  const innerR = outerR * 0.32;
-  const categoryR = outerR * 0.62;
-  const projectR = outerR * 0.74;
+  const innerR = outerR * 0.4;
+  const categoryR = outerR * 0.66;
+  const projectR = outerR * 0.78;
   const bandInner = outerR * 0.88;
   const bandOuter = outerR * 0.94;
   const angleStart = -Math.PI + 0.18;
@@ -278,7 +323,8 @@ function placeOverview(graph, metrics) {
       graph.methods.length === 1 ? 0.5 : index / (graph.methods.length - 1);
     method.angle = methodSpanStart + t * methodSpan;
     method.ring = innerR;
-    method.r = (6.2 + 8.5 * Math.sqrt(method.count / maxMethod)) * scale;
+    method.r = Math.max(10, (8 + 5 * Math.sqrt(method.count / maxMethod)) * scale);
+    method.labelIndex = index;
     method.x = cx + method.ring * Math.cos(method.angle);
     method.y = cy + method.ring * Math.sin(method.angle);
   });
@@ -331,7 +377,8 @@ function placeZoomed(graph, metrics, categoryId) {
     const t = methods.length === 1 ? 0.5 : index / (methods.length - 1);
     method.angle = methodSpanStart + t * methodSpan;
     method.ring = innerR;
-    method.r = (6.2 + 8.5 * Math.sqrt((method.localCount || 1) / maxLocal)) * scale;
+    method.r = Math.max(10, (8 + 5 * Math.sqrt((method.localCount || 1) / maxLocal)) * scale);
+    method.labelIndex = index;
     method.x = cx + method.ring * Math.cos(method.angle);
     method.y = cy + method.ring * Math.sin(method.angle);
   });

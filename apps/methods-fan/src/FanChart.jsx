@@ -15,10 +15,31 @@ import {
   CATEGORY_DASH,
   layoutGraph,
   linksForView,
+  methodMark,
   nodesForView,
   polar,
   wrapLines,
 } from "./graph.js";
+
+function methodMarkSize(r) {
+  return (Math.max(8, r) * 1.55) ** 2;
+}
+
+function applyMethodMarks(sel) {
+  sel.select("path.method-mark").each(function (d) {
+    const mark = methodMark(d.label, methodMarkSize(d.r));
+    select(this)
+      .attr("d", mark.d)
+      .attr("class", `method-mark is-${mark.ink}`);
+  });
+}
+
+function methodLabelAnchor(angle) {
+  const c = Math.cos(angle);
+  if (c < -0.34) return "end";
+  if (c > 0.34) return "start";
+  return "middle";
+}
 
 function mathToArc(angle) {
   return angle + Math.PI / 2;
@@ -180,7 +201,7 @@ export function FanChart({
       .text(
         zoomed
           ? `Zoomed into ${zoomedCategory}. Inner nodes are methods used in this category. Outer nodes are this category’s reports around the semicircle. Escape returns to all categories.`
-          : "Inner nodes are research methods. Outer nodes are categories. A curve from a method to a category means reports in that category used the method. Activate a category to zoom in.",
+          : "Inner nodes are research methods, each with its own symbol. Names sit outside the marks so they stay readable. Outer nodes are categories. A curve from a method to a category means reports in that category used the method. Activate a category to zoom in.",
       );
 
     const root = svg.append("g").attr("class", "fan-root");
@@ -204,19 +225,19 @@ export function FanChart({
       .force(
         "collide",
         forceCollide()
-          .radius((d) => d.r + (d.kind === "category" ? 10 : 2.8))
+          .radius((d) => d.r + (d.kind === "method" ? 10 : d.kind === "category" ? 10 : 2.8))
           .strength(0.85),
       )
       .force(
         "x",
         forceX((d) => metrics.cx + d.ring * Math.cos(d.angle)).strength((d) =>
-          d.kind === "method" ? 0.5 : 0.78,
+          d.kind === "method" ? 0.72 : 0.78,
         ),
       )
       .force(
         "y",
         forceY((d) => metrics.cy + d.ring * Math.sin(d.angle)).strength((d) =>
-          d.kind === "method" ? 0.5 : 0.78,
+          d.kind === "method" ? 0.72 : 0.78,
         ),
       )
       .velocityDecay(0.32)
@@ -251,11 +272,12 @@ export function FanChart({
         const g = enter.append("g").attr("class", (d) => `fan-node is-${d.kind}`);
         g.append("circle")
           .attr("class", "hit")
-          .attr("r", (d) => Math.max(12, d.r + 6));
+          .attr("r", (d) => Math.max(14, d.r + 8));
         g.append("circle")
           .attr("class", "dot")
           .attr("r", (d) => d.r)
-          .attr("fill", (d) => (d.kind === "method" ? "#161616" : d.color));
+          .attr("fill", (d) => (d.kind === "method" ? "#f4efe6" : d.color));
+        g.append("path").attr("class", "method-mark").attr("aria-hidden", "true");
         g.append("text")
           .attr("class", "cat-count")
           .attr("text-anchor", "middle")
@@ -268,6 +290,8 @@ export function FanChart({
     const methodSel = nodeSel.filter((d) => d.kind === "method");
     const categorySel = nodeSel.filter((d) => d.kind === "category");
     const projectSel = nodeSel.filter((d) => d.kind === "project");
+
+    applyMethodMarks(methodSel);
 
     methodSel
       .attr("tabindex", 0)
@@ -299,21 +323,9 @@ export function FanChart({
       )
       .join("text")
       .attr("class", "method-label")
-      .attr("text-anchor", "middle")
+      .attr("dy", "0.32em")
       .attr("aria-hidden", "true")
-      .each(function (d) {
-        const lines = wrapLines(d.short, 14);
-        const sel = select(this);
-        sel.selectAll("tspan").remove();
-        lines.forEach((line, i) => {
-          sel
-            .append("tspan")
-            .attr("x", 0)
-            .attr("dy", i === 0 ? 0 : "1.15em")
-            .text(line);
-        });
-        d.labelLines = lines.length;
-      });
+      .text((d) => d.short);
 
     const outerLabelSel = labelG
       .selectAll("text.outer-label")
@@ -530,12 +542,17 @@ export function FanChart({
 
       nodeSel.attr("transform", (d) => `translate(${d.x},${d.y})`);
 
-      methodLabelSel.attr("transform", (d) => {
-        const a = Math.atan2(d.y - cy, d.x - cx);
-        const inward = d.ring - d.r - 10 - (d.labelLines - 1) * 7;
-        const p = polar(cx, cy, Math.max(18, inward), a);
-        return `translate(${p.x},${p.y})`;
-      });
+      methodLabelSel
+        .attr("text-anchor", (d) => {
+          const a = Math.atan2(d.y - cy, d.x - cx);
+          return methodLabelAnchor(a);
+        })
+        .attr("transform", (d) => {
+          const a = Math.atan2(d.y - cy, d.x - cx);
+          const stagger = ((d.labelIndex ?? 0) % 2) * 14;
+          const p = polar(cx, cy, d.ring + d.r + 12 + stagger, a);
+          return `translate(${p.x},${p.y})`;
+        });
 
       outerLabelSel.attr("transform", (d) => {
         const a = Math.atan2(d.y - cy, d.x - cx);
@@ -562,7 +579,8 @@ export function FanChart({
       }
       metrics = layoutGraph(graph, width, height, zoomedCategory);
       nodeSel.select("circle.dot").attr("r", (d) => d.r);
-      nodeSel.select("circle.hit").attr("r", (d) => Math.max(12, d.r + 6));
+      nodeSel.select("circle.hit").attr("r", (d) => Math.max(14, d.r + 8));
+      applyMethodMarks(methodSel);
       sim
         .force("link")
         .distance(Math.max(24, metrics.projectR - metrics.innerR));
@@ -631,7 +649,7 @@ export function FanChart({
         </button>
       ) : null}
       <p className="fan-caption">
-        <span>inner → methods</span>
+        <span>inner → methods by symbol</span>
         <span>
           {zoomed
             ? `outer → ${zoomedCategory} reports`

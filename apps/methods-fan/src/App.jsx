@@ -3,7 +3,7 @@ import { reports } from "@hhcd/data";
 import { Shell } from "@hhcd/shell";
 import "@hhcd/shell/shell.css";
 import { FanChart } from "./FanChart.jsx";
-import { buildGraph, CATEGORY_DASH } from "./graph.js";
+import { buildGraph, CATEGORY_DASH, methodMark } from "./graph.js";
 
 function refOf(item) {
   if (!item) return null;
@@ -138,6 +138,40 @@ export default function App() {
                     </svg>
                     {category.label}
                     <span>{category.count}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="key-label">Methods</p>
+          <ul className="method-key">
+            {([...graph.methods]
+              .filter((method) =>
+                zoomedCategory
+                  ? method.projectIds.some((id) => {
+                      const project = graph.projects.find((entry) => entry.id === id);
+                      return project?.category === zoomedCategory;
+                    })
+                  : true,
+              )
+              .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+            ).map((method) => {
+              const pressed = pinned?.kind === "method" && pinned.id === method.id;
+              return (
+                <li key={method.id}>
+                  <button
+                    type="button"
+                    className={pressed ? "active" : ""}
+                    aria-pressed={pressed}
+                    aria-label={`${method.label}, used in ${method.count} reports`}
+                    onClick={() => onSelect(method)}
+                    onMouseEnter={() =>
+                      setHovered({ kind: "method", id: method.id })
+                    }
+                    onMouseLeave={() => setHovered(null)}
+                  >
+                    <MethodGlyph name={method.label} />
+                    {method.short}
                   </button>
                 </li>
               );
@@ -308,8 +342,8 @@ function Detail({ detail, graph, onSelect, zoomedCategory }) {
       <h1>{zoomedCategory ? "This category" : "How to read this"}</h1>
       <p className="lede">
         {zoomedCategory
-          ? "Inner nodes are the methods used here. Outer nodes are this category’s reports, spread around the semicircle by year. Hover a method to trace its reports."
-          : "Inner nodes are research methods. Outer nodes are categories, sized by how many reports they hold. A curve means that method was used in that category. Line texture also marks category, not colour alone."}
+          ? "Inner marks are the methods used here — each has its own symbol. Outer nodes are this category’s reports, spread around the semicircle by year. Hover a method to trace its reports."
+          : "Inner marks are research methods: each shape is a method, with the name beside it. Outer nodes are categories, sized by how many reports they hold. A curve means that method was used in that category. Line texture also marks category, not colour alone."}
       </p>
       <p className="body">
         {zoomedCategory
@@ -317,5 +351,20 @@ function Detail({ detail, graph, onSelect, zoomedCategory }) {
           : "Click a category node or the list to zoom in. Tab or arrow-key methods. Escape clears."}
       </p>
     </div>
+  );
+}
+
+function MethodGlyph({ name }) {
+  const mark = methodMark(name, 92);
+  return (
+    <svg
+      className={`method-glyph is-${mark.ink}`}
+      width="18"
+      height="18"
+      viewBox="-9 -9 18 18"
+      aria-hidden="true"
+    >
+      <path d={mark.d} />
+    </svg>
   );
 }
