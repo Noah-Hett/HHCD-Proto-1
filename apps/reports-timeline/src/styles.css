@@ -1,0 +1,296 @@
+@import "@hhcd/theme/tokens.css";
+
+.workspace {
+  display: flex;
+  height: calc(100vh - 40px);
+  min-height: 28rem;
+  background: var(--bg);
+}
+
+.chart-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.toolbar {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 20px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.count {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.count b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid #111;
+  flex-shrink: 0;
+}
+
+.line-sample {
+  width: 22px;
+  height: 0;
+  border-top: 2.5px solid #222;
+  flex-shrink: 0;
+}
+
+.line-sample.dotted {
+  border-top: 1.5px dashed #555;
+}
+
+.links-legend {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.chart-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.chart {
+  display: block;
+  min-width: 860px;
+}
+
+.axis-line,
+.tick {
+  stroke: #cfcfcf;
+  stroke-width: 1;
+}
+
+.tick-label {
+  fill: var(--muted);
+  font-size: 11px;
+  font-family: var(--font);
+}
+
+.link {
+  fill: none;
+}
+
+.report-link {
+  stroke: #1f1f1f;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.author-link {
+  stroke: #5c5c5c;
+  stroke-width: 1.6;
+  stroke-dasharray: 5 4;
+  stroke-linecap: round;
+}
+
+.dim {
+  opacity: 0.16;
+}
+
+.node {
+  cursor: pointer;
+  outline: none;
+}
+
+.hit {
+  fill: transparent;
+}
+
+.dot {
+  stroke: #111;
+  stroke-width: 1.2;
+}
+
+.node.active .dot,
+.node:focus-visible .dot {
+  stroke-width: 2.25;
+}
+
+.node:focus-visible .hit {
+  stroke: #111;
+  stroke-width: 1.5;
+  fill: none;
+}
+
+.panel {
+  width: min(24rem, 100%);
+  flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  overflow: auto;
+  padding: 16px 18px 32px;
+}
+
+.panel-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.panel h2 {
+  margin: 0;
+  flex: 1;
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.close {
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.close:hover,
+.close:focus-visible {
+  background: var(--hover);
+  outline: 2px solid #111;
+  outline-offset: 1px;
+}
+
+.panel dl {
+  margin: 0;
+}
+
+.field {
+  margin: 0 0 14px;
+}
+
+.field dt {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.field dd {
+  margin: 3px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.empty {
+  color: var(--muted);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.connection-list {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.text-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.text-link:hover,
+.text-link:focus-visible {
+  color: #1a4ea0;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 20;
+  width: max-content;
+  max-width: 280px;
+  padding: 8px 10px;
+  background: #fff;
+  border: 1px solid var(--border);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  pointer-events: none;
+  font-size: 13px;
+}
+
+.tooltip strong {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.tooltip span {
+  color: var(--muted);
+}
+
+@media (max-width: 800px) {
+  .workspace {
+    position: relative;
+    height: auto;
+    min-height: calc(100vh - 40px);
+  }
+
+  .chart-wrap {
+    height: min(70vh, 36rem);
+  }
+
+  .links-legend {
+    margin-left: 0;
+  }
+
+  .workspace.has-panel .panel {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    border-left: 0;
+    z-index: 8;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .link,
+  .node,
+  .dim {
+    transition: none;
+  }
+}
