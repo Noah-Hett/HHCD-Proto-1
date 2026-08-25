@@ -7,11 +7,19 @@ export const CATEGORY_ORDER = [
 ];
 
 export const CATEGORY_COLORS = {
-  Transport: "#c24e2f",
-  "Mobility and Transport": "#d8892c",
-  "City and community": "#3d6e8a",
-  "Health and wellbeing": "#2f7a62",
-  "Work and workplace": "#6e4d7b",
+  Transport: "#a33b20",
+  "Mobility and Transport": "#8a4f00",
+  "City and community": "#2c5874",
+  "Health and wellbeing": "#1e5a47",
+  "Work and workplace": "#5a3c66",
+};
+
+export const CATEGORY_DASH = {
+  Transport: "",
+  "Mobility and Transport": "7 4",
+  "City and community": "2.5 2.5",
+  "Health and wellbeing": "10 3 3 3",
+  "Work and workplace": "1.5 2.5",
 };
 
 const FALLBACK_COLOR = "#555";
@@ -109,6 +117,34 @@ export function buildGraph(reports) {
     categories,
     byCategory,
   };
+}
+
+export function buildRibbons(graph) {
+  const projectById = new Map(graph.projects.map((project) => [project.id, project]));
+  const ribbons = [];
+  for (const method of graph.methods) {
+    const byCat = new Map();
+    for (const id of method.projectIds) {
+      const project = projectById.get(id);
+      if (!project) continue;
+      byCat.set(project.category, (byCat.get(project.category) ?? 0) + 1);
+    }
+    for (const category of graph.categories) {
+      const count = byCat.get(category.id);
+      if (!count) continue;
+      ribbons.push({
+        id: `${method.id}→${category.id}`,
+        methodId: method.id,
+        categoryId: category.id,
+        count,
+        color: category.color,
+        dash: CATEGORY_DASH[category.id] ?? "",
+        method,
+        category,
+      });
+    }
+  }
+  return ribbons;
 }
 
 export function layoutGraph(graph, width, height) {

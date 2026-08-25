@@ -10,7 +10,14 @@ import {
   forceY,
   select,
 } from "d3";
-import { buildGraph, layoutGraph, polar, wrapLines } from "./graph.js";
+import {
+  buildGraph,
+  buildRibbons,
+  CATEGORY_DASH,
+  layoutGraph,
+  polar,
+  wrapLines,
+} from "./graph.js";
 
 function mathToArc(angle) {
   return angle + Math.PI / 2;
@@ -63,9 +70,11 @@ function applyFocus(svgEl, focus, nodeById, categories) {
 
   const hotNodes = new Set();
   const hotCats = new Set();
+  const hotMethods = new Set();
 
   if (resolved.kind === "method") {
     hotNodes.add(resolved.id);
+    hotMethods.add(resolved.id);
     for (const id of resolved.projectIds ?? []) {
       hotNodes.add(id);
       const project = nodeById.get(id);
@@ -73,14 +82,20 @@ function applyFocus(svgEl, focus, nodeById, categories) {
     }
   } else if (resolved.kind === "project") {
     hotNodes.add(resolved.id);
-    for (const id of resolved.methodIds ?? []) hotNodes.add(id);
+    for (const id of resolved.methodIds ?? []) {
+      hotNodes.add(id);
+      hotMethods.add(id);
+    }
     if (resolved.category) hotCats.add(resolved.category);
   } else {
     hotCats.add(resolved.id);
     for (const node of nodeById.values()) {
       if (node.kind === "project" && node.category === resolved.id) {
         hotNodes.add(node.id);
-        for (const id of node.methodIds) hotNodes.add(id);
+        for (const id of node.methodIds) {
+          hotNodes.add(id);
+          hotMethods.add(id);
+        }
       }
     }
   }
@@ -90,6 +105,15 @@ function applyFocus(svgEl, focus, nodeById, categories) {
     const targetId = d.target.id ?? d.target;
     return hotNodes.has(sourceId) && hotNodes.has(targetId);
   });
+  svg.selectAll(".fan-ribbon").classed("is-hot", (d) => {
+    if (resolved.kind === "method") return d.methodId === resolved.id;
+    if (resolved.kind === "project") {
+      return (
+        hotMethods.has(d.methodId) && d.categoryId === resolved.category
+      );
+    }
+    return d.categoryId === resolved.id;
+  });
   svg.selectAll(".fan-node").classed("is-hot", (d) => hotNodes.has(d.id));
   svg.selectAll(".method-label").classed("is-hot", (d) => hotNodes.has(d.id));
   svg
@@ -97,7 +121,7 @@ function applyFocus(svgEl, focus, nodeById, categories) {
     .classed("is-hot", (d) => hotCats.has(d.id));
 }
 
-export function FanChart({ reports, focus, onFocus, onSelect }) {
+export function FanChart({ reports, focus, onFocus, onSelect, showAllLinks }) {
   const wrapRef = useRef(null);
   const svgRef = useRef(null);
   const apiRef = useRef(null);
@@ -110,25 +134,46 @@ export function FanChart({ reports, focus, onFocus, onSelect }) {
   onSelectRef.current = onSelect;
 
   useEffect(() => {
+    select(svgRef.current).classed("show-all-links", Boolean(showAllLinks));
+  }, [showAllLinks]);
+
+  useEffect(() => {
     const wrap = wrapRef.current;
     const svgEl = svgRef.current;
     const svg = select(svgEl);
     const graph = buildGraph(reports);
+    const ribbons = buildRibbons(graph);
     const nodes = [...graph.methods, ...graph.projects];
     const links = graph.links.map((link) => ({ ...link }));
     const nodeById = new Map(nodes.map((node) => [node.id, node]));
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
     let metrics = layoutGraph(
       graph,
       Math.max(wrap.clientWidth || 0, 800),
       Math.max(wrap.clientHeight || 0, 560),
     );
+    const maxRibbon = Math.max(...ribbons.map((ribbon) => ribbon.count), 1);
 
     svg.selectAll("*").remove();
+    svg
+      .append("title")
+      .attr("id", "methods-fan-title")
+      .text("Methods fan");
+    svg
+      .append("desc")
+      .attr("id", "methods-fan-desc")
+      .text(
+        "Inner arc: research methods, sized by how many reports used them. Outer arc: reports grouped by category. At rest, each curve is a method–category summary whose thickness is the number of reports. Tab a method or use the category list to see individual report links.",
+      );
+
     const root = svg.append("g").attr("class", "fan-root");
     const wedgesG = root.append("g").attr("class", "fan-wedges");
     const guidesG = root.append("g").attr("class", "fan-guides");
     const bandsG = root.append("g").attr("class", "fan-bands");
     const catLabelsG = root.append("g").attr("class", "fan-cat-labels");
+    const ribbonsG = root.append("g").attr("class", "fan-ribbons");
     const linksG = root.append("g").attr("class", "fan-links");
     const nodesG = root.append("g").attr("class", "fan-nodes");
     const methodLabelsG = root.append("g").attr("class", "fan-method-labels");
@@ -163,12 +208,27 @@ export function FanChart({ reports, focus, onFocus, onSelect }) {
       .velocityDecay(0.32)
       .stop();
 
+    const ribbonSel = ribbonsG
+      .selectAll("path")
+      .data(ribbons, (d) => d.id)
+      .join("path")
+      .attr("class", "fan-ribbon")
+      .attr("stroke", (d) => d.color)
+      .attr("stroke-dasharray", (d) => d.dash || null)
+      .attr("stroke-width", (d) => 1.8 + 5.5 * Math.sqrt(d.count / maxRibbon))
+      .attr("aria-hidden", "true");
+
     const linkSel = linksG
       .selectAll("path")
       .data(links, (d) => d.id)
       .join("path")
       .attr("class", "fan-link")
-      .attr("stroke", (d) => nodeById.get(d.target.id ?? d.target)?.color ?? "#111");
+      .attr("stroke", (d) => nodeById.get(d.target.id ?? d.target)?.color ?? "#111")
+      .attr("stroke-dasharray", (d) => {
+        const project = nodeById.get(d.target.id ?? d.target);
+        return CATEGORY_DASH[project?.category] || null;
+      })
+      .attr("aria-hidden", "true");
 
     const nodeSel = nodesG
       .selectAll("g")
@@ -177,7 +237,7 @@ export function FanChart({ reports, focus, onFocus, onSelect }) {
         const g = enter.append("g").attr("class", (d) => `fan-node is-${d.kind}`);
         g.append("circle")
           .attr("class", "hit")
-          .attr("r", (d) => Math.max(10, d.r + 4));
+          .attr("r", (d) => Math.max(12, d.r + 6));
         g.append("circle")
           .attr("class", "dot")
           .attr("r", (d) => d.r)
@@ -185,12 +245,29 @@ export function FanChart({ reports, focus, onFocus, onSelect }) {
         return g;
       });
 
+    const methodSel = nodeSel.filter((d) => d.kind === "method");
+    methodSel
+      .attr("tabindex", 0)
+      .attr("role", "button")
+      .attr(
+        "aria-label",
+        (d) => `${d.label}, used in ${d.count} of ${graph.projects.length} reports`,
+      );
+    nodeSel
+      .filter((d) => d.kind === "project")
+      .attr("tabindex", -1)
+      .attr(
+        "aria-label",
+        (d) => `${d.title}, ${d.category}, ${d.report.year ?? "year unknown"}`,
+      );
+
     const methodLabelSel = methodLabelsG
       .selectAll("text")
       .data(graph.methods, (d) => d.id)
       .join("text")
       .attr("class", "method-label")
       .attr("text-anchor", "middle")
+      .attr("aria-hidden", "true")
       .each(function (d) {
         const lines = wrapLines(d.short, 14);
         const sel = select(this);
@@ -208,7 +285,7 @@ export function FanChart({ reports, focus, onFocus, onSelect }) {
     const drag = d3drag()
       .on("start", (event, d) => {
         d.didDrag = false;
-        if (!event.active) sim.alphaTarget(0.18).restart();
+        if (!reduceMotion && !event.active) sim.alphaTarget(0.18).restart();
         d.fx = d.x;
         d.fy = d.y;
       })
@@ -218,9 +295,10 @@ export function FanChart({ reports, focus, onFocus, onSelect }) {
         d.fy = event.y;
       })
       .on("end", (event, d) => {
-        if (!event.active) sim.alphaTarget(0);
+        if (!reduceMotion && !event.active) sim.alphaTarget(0);
         d.fx = null;
         d.fy = null;
+        if (reduceMotion) ticked();
       });
 
     nodeSel.call(drag);
@@ -240,6 +318,29 @@ export function FanChart({ reports, focus, onFocus, onSelect }) {
           return;
         }
         onSelectRef.current?.(d);
+      });
+
+    methodSel
+      .on("focus", (event, d) => emitFocus(d, event))
+      .on("blur", () => onFocusRef.current?.(null))
+      .on("keydown", (event, d) => {
+        const list = graph.methods;
+        const index = list.findIndex((method) => method.id === d.id);
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelectRef.current?.(d);
+          return;
+        }
+        const step =
+          event.key === "ArrowRight" || event.key === "ArrowDown"
+            ? 1
+            : event.key === "ArrowLeft" || event.key === "ArrowUp"
+              ? -1
+              : 0;
+        if (!step || index < 0) return;
+        event.preventDefault();
+        const next = list[(index + step + list.length) % list.length];
+        methodSel.filter((method) => method.id === next.id).node()?.focus();
       });
 
     svg.on("click", () => onSelectRef.current?.(null));
@@ -283,7 +384,8 @@ export function FanChart({ reports, focus, onFocus, onSelect }) {
         .join("path")
         .attr("class", "fan-band")
         .attr("d", bandArc)
-        .attr("fill", (d) => d.color);
+        .attr("fill", (d) => d.color)
+        .attr("aria-hidden", "true");
 
       guidesG
         .selectAll("path.guide")
@@ -301,6 +403,7 @@ export function FanChart({ reports, focus, onFocus, onSelect }) {
         .join("text")
         .attr("class", "cat-label")
         .attr("text-anchor", "middle")
+        .attr("aria-hidden", "true")
         .each(function (d) {
           const pos = polar(cx, cy, bandOuter + 16, d.mid);
           const sel = select(this);
@@ -318,7 +421,7 @@ export function FanChart({ reports, focus, onFocus, onSelect }) {
     }
 
     function ticked() {
-      const { cx, cy, angleStart, angleEnd } = metrics;
+      const { cx, cy, angleStart, angleEnd, projectR } = metrics;
       for (const d of nodes) {
         if (d.fx != null) continue;
         let a = Math.atan2(d.y - cy, d.x - cx);
@@ -332,6 +435,12 @@ export function FanChart({ reports, focus, onFocus, onSelect }) {
         d.y = cy + d.ring * Math.sin(a);
       }
 
+      ribbonSel.attr("d", (d) =>
+        bentLink(cx, cy, {
+          source: d.method,
+          target: polar(cx, cy, projectR, d.category.mid),
+        }),
+      );
       linkSel.attr("d", (d) => bentLink(cx, cy, d));
 
       nodeSel.attr("transform", (d) => `translate(${d.x},${d.y})`);
@@ -352,7 +461,7 @@ export function FanChart({ reports, focus, onFocus, onSelect }) {
       svg.attr("viewBox", `0 0 ${width} ${height}`);
       metrics = layoutGraph(graph, width, height);
       nodeSel.select("circle.dot").attr("r", (d) => d.r);
-      nodeSel.select("circle.hit").attr("r", (d) => Math.max(10, d.r + 4));
+      nodeSel.select("circle.hit").attr("r", (d) => Math.max(12, d.r + 6));
       sim
         .force("link")
         .distance(Math.max(24, metrics.projectR - metrics.innerR));
@@ -361,7 +470,11 @@ export function FanChart({ reports, focus, onFocus, onSelect }) {
       drawStatic();
       ticked();
       applyFocus(svgEl, focusRef.current, nodeById, graph.categories);
-      sim.alpha(0.55).restart();
+      if (reduceMotion) {
+        sim.stop();
+      } else {
+        sim.alpha(0.55).restart();
+      }
     }
 
     const ro = new ResizeObserver(applySize);
@@ -391,13 +504,14 @@ export function FanChart({ reports, focus, onFocus, onSelect }) {
     <div className="fan-wrap" ref={wrapRef}>
       <svg
         ref={svgRef}
-        className="fan"
-        role="img"
-        aria-label="Force-directed fan: methods on the inner arc, reports on the outer arc grouped by category"
+        className={showAllLinks ? "fan show-all-links" : "fan"}
+        role="group"
+        aria-labelledby="methods-fan-title methods-fan-desc"
       />
       <p className="fan-caption">
         <span>inner → methods</span>
         <span>outer → reports by category</span>
+        <span>line texture also marks category</span>
       </p>
     </div>
   );

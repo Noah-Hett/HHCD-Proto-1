@@ -3,7 +3,7 @@ import { reports } from "@hhcd/data";
 import { Shell } from "@hhcd/shell";
 import "@hhcd/shell/shell.css";
 import { FanChart } from "./FanChart.jsx";
-import { buildGraph } from "./graph.js";
+import { buildGraph, CATEGORY_DASH } from "./graph.js";
 
 function refOf(item) {
   if (!item) return null;
@@ -18,6 +18,7 @@ export default function App() {
   const graph = useMemo(() => buildGraph(reports), []);
   const [pinned, setPinned] = useState(null);
   const [hovered, setHovered] = useState(null);
+  const [showAllLinks, setShowAllLinks] = useState(false);
 
   const onFocus = useCallback((item) => setHovered(refOf(item)), []);
   const onSelect = useCallback((item) => {
@@ -38,6 +39,7 @@ export default function App() {
 
   const focus = hovered ?? pinned;
   const detail = resolveDetail(graph, pinned ?? hovered);
+  const status = statusText(graph, pinned);
 
   return (
     <Shell fill title="Methods fan">
@@ -48,43 +50,103 @@ export default function App() {
             focus={focus}
             onFocus={onFocus}
             onSelect={onSelect}
+            showAllLinks={showAllLinks}
           />
         </div>
-        <aside className="panel" aria-live="polite">
-          <p className="kicker">
+        <aside className="panel">
+          <p className="kicker" id="fan-summary">
             {graph.methods.length} methods · {graph.projects.length} reports ·{" "}
             {graph.links.length} links
           </p>
+          <p className="sr-only" role="status" aria-live="polite">
+            {status}
+          </p>
+          <button
+            type="button"
+            className="link-toggle"
+            aria-pressed={showAllLinks}
+            onClick={() => setShowAllLinks((value) => !value)}
+          >
+            {showAllLinks
+              ? "Hide individual connections"
+              : "Show all individual connections"}
+          </button>
           <ul className="legend">
-            {graph.categories.map((category) => (
-              <li key={category.id}>
-                <button
-                  type="button"
-                  className={
-                    pinned?.kind === "category" && pinned.id === category.id
-                      ? "active"
-                      : ""
-                  }
-                  onClick={() =>
-                    onSelect({ kind: "category", id: category.id })
-                  }
-                  onMouseEnter={() =>
-                    setHovered({ kind: "category", id: category.id })
-                  }
-                  onMouseLeave={() => setHovered(null)}
-                >
-                  <i style={{ background: category.color }} />
-                  {category.label}
-                  <span>{category.count}</span>
-                </button>
-              </li>
-            ))}
+            {graph.categories.map((category) => {
+              const pressed =
+                pinned?.kind === "category" && pinned.id === category.id;
+              return (
+                <li key={category.id}>
+                  <button
+                    type="button"
+                    className={pressed ? "active" : ""}
+                    aria-pressed={pressed}
+                    aria-label={`${category.label}, ${category.count} reports`}
+                    onClick={() =>
+                      onSelect({ kind: "category", id: category.id })
+                    }
+                    onMouseEnter={() =>
+                      setHovered({ kind: "category", id: category.id })
+                    }
+                    onMouseLeave={() => setHovered(null)}
+                  >
+                    <i
+                      style={{
+                        background: category.color,
+                        borderColor: category.color,
+                      }}
+                      aria-hidden="true"
+                    />
+                    <svg
+                      className="dash-swatch"
+                      width="22"
+                      height="8"
+                      aria-hidden="true"
+                    >
+                      <line
+                        x1="1"
+                        y1="4"
+                        x2="21"
+                        y2="4"
+                        stroke={category.color}
+                        strokeWidth="2.5"
+                        strokeDasharray={CATEGORY_DASH[category.id] || undefined}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    {category.label}
+                    <span>{category.count}</span>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
           <Detail detail={detail} graph={graph} onSelect={onSelect} />
         </aside>
       </div>
     </Shell>
   );
+}
+
+function statusText(graph, pinned) {
+  if (!pinned) return "Showing method to category summaries.";
+  if (pinned.kind === "method") {
+    const method = graph.methods.find((item) => item.id === pinned.id);
+    return method
+      ? `${method.label} pinned, used in ${method.count} reports.`
+      : "";
+  }
+  if (pinned.kind === "project") {
+    const project = graph.projects.find((item) => item.id === pinned.id);
+    return project ? `${project.title} pinned.` : "";
+  }
+  if (pinned.kind === "category") {
+    const category = graph.categories.find((item) => item.id === pinned.id);
+    return category
+      ? `${category.label} pinned, ${category.count} reports.`
+      : "";
+  }
+  return "";
 }
 
 function resolveDetail(graph, ref) {
@@ -126,7 +188,10 @@ function Detail({ detail, graph, onSelect }) {
           {detail.connected.map((project) => (
             <li key={project.id}>
               <button type="button" onClick={() => onSelect(project)}>
-                <i style={{ background: project.color }} />
+                <i
+                  style={{ background: project.color }}
+                  aria-hidden="true"
+                />
                 <span>
                   <strong>{project.title}</strong>
                   <em>
@@ -146,13 +211,11 @@ function Detail({ detail, graph, onSelect }) {
     return (
       <div className="detail">
         <p className="meta">
-          <span
-            className="pill"
-            style={{
-              background: `${detail.project.color}22`,
-              color: detail.project.color,
-            }}
-          >
+          <span className="pill">
+            <i
+              style={{ background: detail.project.color }}
+              aria-hidden="true"
+            />
             {report.category}
           </span>
           <span>{report.year}</span>
@@ -200,7 +263,10 @@ function Detail({ detail, graph, onSelect }) {
           {detail.connected.map((project) => (
             <li key={project.id}>
               <button type="button" onClick={() => onSelect(project)}>
-                <i style={{ background: project.color }} />
+                <i
+                  style={{ background: project.color }}
+                  aria-hidden="true"
+                />
                 <span>
                   <strong>{project.title}</strong>
                   <em>
@@ -220,14 +286,14 @@ function Detail({ detail, graph, onSelect }) {
     <div className="detail">
       <h1>How to read this</h1>
       <p className="lede">
-        Inner nodes are research methods. Outer nodes are the 62 reports, grouped
-        by category around the larger semicircle. A link means that report used
-        that method.
+        Inner nodes are research methods, sized by use. Outer nodes are the 62
+        reports, grouped by category. At rest, each curve is a method–category
+        summary — thicker means more reports. Line texture also marks category,
+        not colour alone.
       </p>
       <p className="body">
-        Hover to trace a method or report. Click to pin it. Drag a node — the
-        force layout will pull it back onto its arc. Esc or click the background
-        to clear.
+        Hover, tab, or arrow-key a method to see its individual report links.
+        Enter or click to pin. Esc or click the background to clear.
       </p>
     </div>
   );
