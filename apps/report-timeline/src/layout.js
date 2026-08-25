@@ -211,66 +211,72 @@ export function layoutGraph(graph, { width, height, margin, yearRange }) {
   const yMin = margin.top + NODE_RADIUS;
   const yBottom = chartHeight - margin.bottom - NODE_RADIUS;
   const usable = Math.max(yBottom - yMin, MIN_GAP);
-  const gap = Math.max(MIN_GAP, usable / maxCount);
 
   for (const node of nodes) {
     node.x = yearX(node.year, width, margin, yearRange);
     node.r = NODE_RADIUS;
   }
 
-  for (const blocks of columns.values()) {
-    placeBlocks(blocks, yMin, gap);
-  }
+  function placeAll(gap) {
+    for (const blocks of columns.values()) {
+      placeBlocks(blocks, yMin, gap);
+    }
 
-  for (let pass = 0; pass < 12; pass += 1) {
-    for (const [year, blocks] of columns) {
-      const x = yearX(year, width, margin, yearRange);
-      if (pass < 8) {
-        blocks.sort((left, right) => {
-          const bary = (block) => {
-            const values = [];
-            for (const node of block) {
-              for (const id of neighbors.get(node.id) ?? []) {
-                const other = byId.get(id);
-                if (other && other.year !== node.year) values.push(other.y);
+    for (let pass = 0; pass < 12; pass += 1) {
+      for (const [year, blocks] of columns) {
+        const x = yearX(year, width, margin, yearRange);
+        if (pass < 8) {
+          blocks.sort((left, right) => {
+            const bary = (block) => {
+              const values = [];
+              for (const node of block) {
+                for (const id of neighbors.get(node.id) ?? []) {
+                  const other = byId.get(id);
+                  if (other && other.year !== node.year) values.push(other.y);
+                }
               }
-            }
-            if (!values.length) {
-              return block.reduce((sum, node) => sum + node.y, 0) / block.length;
-            }
-            return values.reduce((sum, value) => sum + value, 0) / values.length;
-          };
-          return bary(left) - bary(right);
-        });
+              if (!values.length) {
+                return block.reduce((sum, node) => sum + node.y, 0) / block.length;
+              }
+              return values.reduce((sum, value) => sum + value, 0) / values.length;
+            };
+            return bary(left) - bary(right);
+          });
+        }
+        const reservations = reservationsForYear(year, x, edges, byId);
+        placeBlocks(blocks, yMin, gap, reservations);
       }
-      const reservations = reservationsForYear(year, x, edges, byId);
-      placeBlocks(blocks, yMin, gap, reservations);
+    }
+
+    for (let settle = 0; settle < 16; settle += 1) {
+      for (const [year, blocks] of columns) {
+        const x = yearX(year, width, margin, yearRange);
+        placeBlocks(blocks, yMin, gap, reservationsForYear(year, x, edges, byId));
+      }
     }
   }
 
-  for (let settle = 0; settle < 16; settle += 1) {
-    for (const [year, blocks] of columns) {
-      const x = yearX(year, width, margin, yearRange);
-      placeBlocks(blocks, yMin, gap, reservationsForYear(year, x, edges, byId));
-    }
-  }
-  let minY = Infinity;
-  let maxY = -Infinity;
-  for (const node of nodes) {
-    minY = Math.min(minY, node.y);
-    maxY = Math.max(maxY, node.y);
-  }
-  const extra = yMin - minY;
-  if (extra !== 0) {
-    for (const node of nodes) node.y += extra;
-    maxY += extra;
-    minY = yMin;
-  }
-  if (maxY > yBottom && maxY > minY) {
-    const scale = (yBottom - minY) / (maxY - minY);
+  function bounds() {
+    let minY = Infinity;
+    let maxY = -Infinity;
     for (const node of nodes) {
-      node.y = minY + (node.y - minY) * scale;
+      minY = Math.min(minY, node.y);
+      maxY = Math.max(maxY, node.y);
     }
+    return { minY, maxY };
+  }
+
+  let gap = Math.max(MIN_GAP, usable / maxCount);
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    placeAll(gap);
+    const { minY, maxY } = bounds();
+    const extra = yMin - minY;
+    if (extra !== 0) {
+      for (const node of nodes) node.y += extra;
+    }
+    const fitted = bounds();
+    if (fitted.maxY <= yBottom || gap <= MIN_GAP + 0.01) break;
+    gap = Math.max(MIN_GAP, gap * ((yBottom - yMin) / (fitted.maxY - yMin)) * 0.96);
   }
 
   return { nodes, height: chartHeight };
