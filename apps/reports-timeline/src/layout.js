@@ -34,9 +34,9 @@ export function layoutReports(reports, { width, height, margin, yearRange }) {
   const usableY = Math.max(yMax - yMin, minDist);
 
   const nodes = reports.map((report) => {
-    const rng = mulberry32(hashString(report.reportNo));
+    const rng = mulberry32(hashString(report.uid));
     return {
-      id: report.reportNo,
+      id: report.uid,
       report,
       x: yearX(report.year, width, margin, yearRange),
       y: yMin + rng() * usableY,

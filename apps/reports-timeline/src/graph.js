@@ -71,40 +71,35 @@ function pairKey(a, b) {
 }
 
 export function buildLinks(reports) {
-  const ids = new Set(reports.map((report) => report.reportNo));
+  const byNo = new Map(
+    reports.filter((report) => report.reportNo).map((report) => [report.reportNo, report]),
+  );
   const reportPairs = new Set();
   const skippedConnections = [];
 
   for (const report of reports) {
     for (const target of parseConnectionIds(report.connections)) {
-      if (target === report.reportNo) continue;
-      if (!ids.has(target)) {
+      if (!/^\d+$/.test(target)) continue;
+      const other = byNo.get(target);
+      if (!other) {
         skippedConnections.push({ from: report.reportNo, to: target });
         continue;
       }
-      reportPairs.add(pairKey(report.reportNo, target));
+      if (other.uid === report.uid) continue;
+      reportPairs.add(pairKey(report.uid, other.uid));
     }
   }
-
-  const namesById = new Map(
-    reports.map((report) => [
-      report.reportNo,
-      new Set(parseAuthors(report.author).map((name) => name.toLowerCase())),
-    ]),
-  );
 
   const authorPairs = new Set();
   for (let i = 0; i < reports.length; i += 1) {
     const left = reports[i];
-    const leftNames = namesById.get(left.reportNo);
+    const leftNames = new Set(parseAuthors(left.author).map((name) => name.toLowerCase()));
     if (!leftNames.size) continue;
     for (let j = i + 1; j < reports.length; j += 1) {
       const right = reports[j];
-      for (const name of namesById.get(right.reportNo)) {
-        if (leftNames.has(name)) {
-          authorPairs.add(pairKey(left.reportNo, right.reportNo));
-          break;
-        }
+      const rightNames = parseAuthors(right.author).map((name) => name.toLowerCase());
+      if (rightNames.some((name) => leftNames.has(name))) {
+        authorPairs.add(pairKey(left.uid, right.uid));
       }
     }
   }

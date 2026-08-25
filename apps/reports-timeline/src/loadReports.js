@@ -17,6 +17,7 @@ const FIELD_BY_HEADER = {
   "Website / Links to videos [link]": "website",
   "Partner/Sponsor [text]": "partner",
   "Connections [number]": "connections",
+  "Connections to other projects [text]": "connections",
 };
 
 function isRowBreak(char) {
@@ -92,10 +93,16 @@ function splitMethods(value) {
     .filter(Boolean);
 }
 
+function fieldKeyForHeader(header) {
+  if (FIELD_BY_HEADER[header]) return FIELD_BY_HEADER[header];
+  if ((header || "").toLowerCase().startsWith("connections")) return "connections";
+  return null;
+}
+
 function toReport(row, header) {
   const record = {};
   for (let i = 0; i < header.length; i += 1) {
-    const key = FIELD_BY_HEADER[header[i]];
+    const key = fieldKeyForHeader(header[i]);
     if (!key) continue;
     record[key] = row[i] ?? "";
   }
@@ -132,7 +139,13 @@ if (!header || header[0] !== "Report no.") {
   throw new Error("data/reports.csv is missing the expected header row");
 }
 
-export const reports = dataRows.map((row) => toReport(row, header));
+export const reports = dataRows.map((row, index) => {
+  const report = toReport(row, header);
+  return {
+    ...report,
+    uid: report.reportNo ?? `row-${index}`,
+  };
+});
 
 const years = reports.map((report) => report.year).filter((year) => typeof year === "number");
 

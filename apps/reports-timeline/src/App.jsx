@@ -28,29 +28,32 @@ const MIN_CHART_WIDTH = 860;
 const plotted = reports.filter((report) => typeof report.year === "number");
 const { links } = buildLinks(plotted);
 
-function FieldValue({ field, report, reportsById, onSelect }) {
+function FieldValue({ field, report, reportsByNo, onSelect }) {
   if (field.key === "connections") {
-    const ids = parseConnectionIds(report.connections);
-    if (!ids.length) return <span className="empty">Not recorded</span>;
+    const tokens = parseConnectionIds(report.connections);
+    if (!tokens.length) return <span className="empty">Not recorded</span>;
     return (
       <ul className="connection-list">
-        {ids.map((id) => {
-          const target = reportsById.get(id);
-          if (!target) {
+        {tokens.map((token) => {
+          const target = /^\d+$/.test(token) ? reportsByNo.get(token) : null;
+          if (target) {
             return (
-              <li key={id}>
-                Report no. {id} <span className="empty">(not in catalogue)</span>
+              <li key={token}>
+                <button type="button" className="text-link" onClick={() => onSelect(target)}>
+                  {target.title}
+                </button>
+                <span className="muted"> (Report no. {target.reportNo})</span>
               </li>
             );
           }
-          return (
-            <li key={id}>
-              <button type="button" className="text-link" onClick={() => onSelect(target)}>
-                {target.title}
-              </button>
-              <span className="muted"> (Report no. {id})</span>
-            </li>
-          );
+          if (/^\d+$/.test(token)) {
+            return (
+              <li key={token}>
+                Report no. {token} <span className="empty">(not in catalogue)</span>
+              </li>
+            );
+          }
+          return <li key={token}>{token}</li>;
         })}
       </ul>
     );
@@ -68,13 +71,13 @@ function FieldValue({ field, report, reportsById, onSelect }) {
   return value;
 }
 
-function SidePanel({ report, reportsById, onClose, onSelect }) {
+function SidePanel({ report, reportsByUid, reportsByNo, onClose, onSelect }) {
   const closeRef = useRef(null);
-  const graphLinks = linkedReports(report.reportNo, links, reportsById);
+  const graphLinks = linkedReports(report.uid, links, reportsByUid);
 
   useEffect(() => {
     closeRef.current?.focus();
-  }, [report.reportNo]);
+  }, [report.uid]);
 
   useEffect(() => {
     const onKey = (event) => {
@@ -111,7 +114,7 @@ function SidePanel({ report, reportsById, onClose, onSelect }) {
               <FieldValue
                 field={field}
                 report={report}
-                reportsById={reportsById}
+                reportsByNo={reportsByNo}
                 onSelect={onSelect}
               />
             </dd>
@@ -123,7 +126,7 @@ function SidePanel({ report, reportsById, onClose, onSelect }) {
             {graphLinks.length ? (
               <ul className="connection-list">
                 {graphLinks.map((item) => (
-                  <li key={item.report.reportNo}>
+                  <li key={item.report.uid}>
                     <button
                       type="button"
                       className="text-link"
@@ -131,7 +134,10 @@ function SidePanel({ report, reportsById, onClose, onSelect }) {
                     >
                       {item.report.title}
                     </button>
-                    <span className="muted"> (Report no. {item.report.reportNo} · {item.reasons.join(", ")})</span>
+                    <span className="muted">
+                      {" "}
+                      (Report no. {item.report.reportNo ?? "—"} · {item.reasons.join(", ")})
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -181,13 +187,20 @@ export default function App() {
   );
 
   const nodesById = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
-  const reportsById = useMemo(
-    () => new Map(plotted.map((report) => [report.reportNo, report])),
+  const reportsByUid = useMemo(
+    () => new Map(plotted.map((report) => [report.uid, report])),
+    [],
+  );
+  const reportsByNo = useMemo(
+    () =>
+      new Map(
+        plotted.filter((report) => report.reportNo).map((report) => [report.reportNo, report]),
+      ),
     [],
   );
 
-  const selected = selectedId ? reportsById.get(selectedId) : null;
-  const hovered = hoveredId ? reportsById.get(hoveredId) : null;
+  const selected = selectedId ? reportsByUid.get(selectedId) : null;
+  const hovered = hoveredId ? reportsByUid.get(hoveredId) : null;
   const activeId = hoveredId ?? selectedId;
   const neighborhood = useMemo(
     () => (activeId ? neighborsOf(activeId, links) : null),
@@ -209,7 +222,7 @@ export default function App() {
   };
 
   const selectReport = useCallback((report) => {
-    setSelectedId(report.reportNo);
+    setSelectedId(report.uid);
     setHoveredId(null);
     setTooltip(null);
   }, []);
@@ -317,7 +330,7 @@ export default function App() {
                       tabIndex={0}
                       role="button"
                       aria-pressed={selectedId === node.id}
-                      aria-label={`Report no. ${node.report.reportNo}. ${node.report.title}. ${node.report.author}. ${node.report.year}. ${node.report.category}.`}
+                      aria-label={`Report no. ${node.report.reportNo ?? "not recorded"}. ${node.report.title}. ${node.report.author}. ${node.report.year}. ${node.report.category}.`}
                       ref={(element) => {
                         if (element) nodeRefs.current.set(node.id, element);
                         else nodeRefs.current.delete(node.id);
@@ -359,7 +372,7 @@ export default function App() {
                         fill={colorForCategory(node.report.category)}
                       />
                       <text className="dot-label" x={NODE_RADIUS + 4} y="3.5">
-                        {node.report.reportNo}
+                        {node.report.reportNo ?? "—"}
                       </text>
                     </g>
                   );
@@ -372,7 +385,8 @@ export default function App() {
         {selected ? (
           <SidePanel
             report={selected}
-            reportsById={reportsById}
+            reportsByUid={reportsByUid}
+            reportsByNo={reportsByNo}
             onClose={closePanel}
             onSelect={selectReport}
           />
@@ -386,7 +400,7 @@ export default function App() {
           style={{ left: tooltip.left, top: tooltip.top }}
         >
           <strong>{tooltip.report.title}</strong>
-          <span>Report no. {tooltip.report.reportNo}</span>
+          <span>Report no. {tooltip.report.reportNo ?? "Not recorded"}</span>
           <span>{tooltip.report.author}</span>
         </div>
       ) : null}
