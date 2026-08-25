@@ -59,10 +59,14 @@ function lerpAngle(a, b, t) {
   return a + delta * t;
 }
 
+function isPoint(p) {
+  return Boolean(p) && Number.isFinite(p.x) && Number.isFinite(p.y);
+}
+
 function bentLink(cx, cy, d) {
   const source = d.source;
   const target = d.target;
-  if (typeof source === "string" || typeof target === "string") return "";
+  if (!isPoint(source) || !isPoint(target)) return null;
   const sx = source.x;
   const sy = source.y;
   const tx = target.x;
@@ -561,7 +565,7 @@ export function FanChart({
       linkSel.attr("d", (d) => {
         const source = d.source.x != null ? d.source : nodeById.get(d.source);
         let target = d.target.x != null ? d.target : nodeById.get(d.target);
-        if (!source || !target) return "";
+        if (!isPoint(source) || !isPoint(target)) return null;
         if (d.kind === "ribbon") {
           const sa = Math.atan2(source.y - cy, source.x - cx);
           const start = polar(
