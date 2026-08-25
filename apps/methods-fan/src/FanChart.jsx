@@ -23,6 +23,24 @@ function ringPath(cx, cy, radius, a0, a1) {
   return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${large} 1 ${end.x} ${end.y}`;
 }
 
+function bentLink(cx, cy, d) {
+  const source = d.source;
+  const target = d.target;
+  if (typeof source === "string" || typeof target === "string") return "";
+  const sx = source.x;
+  const sy = source.y;
+  const tx = target.x;
+  const ty = target.y;
+  const sa = Math.atan2(sy - cy, sx - cx);
+  const ta = Math.atan2(ty - cy, tx - cx);
+  const sr = Math.hypot(sx - cx, sy - cy);
+  const tr = Math.hypot(tx - cx, ty - cy);
+  const cr = sr + (tr - sr) * 0.58;
+  const c1 = polar(cx, cy, cr, sa);
+  const c2 = polar(cx, cy, cr, ta);
+  return `M${sx},${sy} C${c1.x},${c1.y} ${c2.x},${c2.y} ${tx},${ty}`;
+}
+
 function applyFocus(svgEl, focus, nodeById, categories) {
   const svg = select(svgEl);
   const resolved =
@@ -141,9 +159,9 @@ export function FanChart({ reports, focus, onFocus, onSelect }) {
       .stop();
 
     const linkSel = linksG
-      .selectAll("line")
+      .selectAll("path")
       .data(links, (d) => d.id)
-      .join("line")
+      .join("path")
       .attr("class", "fan-link")
       .attr("stroke", (d) => nodeById.get(d.target.id ?? d.target)?.color ?? "#111");
 
@@ -309,11 +327,7 @@ export function FanChart({ reports, focus, onFocus, onSelect }) {
         d.y = cy + d.ring * Math.sin(a);
       }
 
-      linkSel
-        .attr("x1", (d) => d.source.x)
-        .attr("y1", (d) => d.source.y)
-        .attr("x2", (d) => d.target.x)
-        .attr("y2", (d) => d.target.y);
+      linkSel.attr("d", (d) => bentLink(cx, cy, d));
 
       nodeSel.attr("transform", (d) => `translate(${d.x},${d.y})`);
 

@@ -71,6 +71,8 @@
   fill: none;
   stroke-width: 1;
   stroke-opacity: 0.14;
+  stroke-linecap: round;
+  stroke-linejoin: round;
   pointer-events: none;
 }
 
