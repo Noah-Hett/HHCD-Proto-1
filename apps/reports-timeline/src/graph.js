@@ -44,7 +44,6 @@ export const DETAIL_FIELDS = [
   { key: "website", label: "Website" },
   { key: "partner", label: "Partner / Sponsor" },
   { key: "connections", label: "Connections" },
-  { key: "contact", label: "Contact" },
 ];
 
 export function colorForCategory(category) {
@@ -159,9 +158,10 @@ export function linkedReports(reportId, graphLinks, reportsById) {
 
 export function displayValue(report, key) {
   if (key === "methods") {
-    if (report.methodsNarrative) return report.methodsNarrative;
-    if (report.methodsPrimary?.length) return report.methodsPrimary.join(", ");
-    if (report.methodsSecondary?.length) return report.methodsSecondary.join(", ");
+    if (Array.isArray(report.methods) && report.methods.length) {
+      return report.methods.join(", ");
+    }
+    if (typeof report.methods === "string" && report.methods) return report.methods;
     return null;
   }
   const value = report[key];

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { reports, yearRange } from "@hhcd/data";
+import { reports, yearRange } from "./loadReports.js";
 import { Shell } from "@hhcd/shell";
 import "@hhcd/shell/shell.css";
 import {
@@ -58,7 +58,7 @@ function FieldValue({ field, report, reportsById, onSelect }) {
 
   const value = displayValue(report, field.key);
   if (value == null) return <span className="empty">Not recorded</span>;
-  if ((field.key === "website" || field.key === "contact") && isHttpUrl(value)) {
+  if (field.key === "website" && isHttpUrl(value)) {
     return (
       <a href={value} target="_blank" rel="noreferrer">
         {value}

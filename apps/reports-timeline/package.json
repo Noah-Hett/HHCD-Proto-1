@@ -7,7 +7,6 @@
     "build": "vite build"
   },
   "dependencies": {
-    "@hhcd/data": "workspace:*",
     "@hhcd/shell": "workspace:*",
     "@hhcd/theme": "workspace:*",
     "react": "^18.3.1",

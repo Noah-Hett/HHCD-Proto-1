@@ -92,9 +92,6 @@ importers:
 
   apps/reports-timeline:
     dependencies:
-      '@hhcd/data':
-        specifier: workspace:*
-        version: link:../../packages/data
       '@hhcd/shell':
         specifier: workspace:*
         version: link:../../packages/shell
