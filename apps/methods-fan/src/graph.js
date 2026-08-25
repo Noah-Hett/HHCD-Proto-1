@@ -44,6 +44,7 @@ export function buildGraph(reports) {
       color: categoryColor(report.category),
       title: report.title,
       methodIds: [],
+      r: 4,
     };
     projects.push(project);
 
@@ -57,6 +58,7 @@ export function buildGraph(reports) {
           short: METHOD_SHORT[name] ?? name,
           count: 0,
           projectIds: [],
+          r: 8,
         };
         methods.set(name, method);
       }

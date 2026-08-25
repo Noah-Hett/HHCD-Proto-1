@@ -94,6 +94,11 @@ export function FanChart({ reports, focus, onFocus, onSelect }) {
     const nodes = [...graph.methods, ...graph.projects];
     const links = graph.links.map((link) => ({ ...link }));
     const nodeById = new Map(nodes.map((node) => [node.id, node]));
+    let metrics = layoutGraph(
+      graph,
+      Math.max(wrap.clientWidth || 0, 800),
+      Math.max(wrap.clientHeight || 0, 560),
+    );
 
     svg.selectAll("*").remove();
     const root = svg.append("g").attr("class", "fan-root");
@@ -105,17 +110,15 @@ export function FanChart({ reports, focus, onFocus, onSelect }) {
     const nodesG = root.append("g").attr("class", "fan-nodes");
     const methodLabelsG = root.append("g").attr("class", "fan-method-labels");
 
-    let metrics = { cx: 0, cy: 0, innerR: 0, projectR: 0 };
-
     const sim = forceSimulation(nodes)
       .force(
         "link",
         forceLink(links)
           .id((d) => d.id)
           .distance(() => Math.max(24, metrics.projectR - metrics.innerR))
-          .strength(0.11),
+          .strength(0.06),
       )
-      .force("charge", forceManyBody().strength(-22))
+      .force("charge", forceManyBody().strength(-12))
       .force(
         "collide",
         forceCollide()
@@ -125,13 +128,13 @@ export function FanChart({ reports, focus, onFocus, onSelect }) {
       .force(
         "x",
         forceX((d) => metrics.cx + d.ring * Math.cos(d.angle)).strength((d) =>
-          d.kind === "project" ? 0.62 : 0.42,
+          d.kind === "project" ? 0.9 : 0.55,
         ),
       )
       .force(
         "y",
         forceY((d) => metrics.cy + d.ring * Math.sin(d.angle)).strength((d) =>
-          d.kind === "project" ? 0.62 : 0.42,
+          d.kind === "project" ? 0.9 : 0.55,
         ),
       )
       .velocityDecay(0.32)
@@ -181,11 +184,13 @@ export function FanChart({ reports, focus, onFocus, onSelect }) {
 
     const drag = d3drag()
       .on("start", (event, d) => {
+        d.didDrag = false;
         if (!event.active) sim.alphaTarget(0.18).restart();
         d.fx = d.x;
         d.fy = d.y;
       })
       .on("drag", (event, d) => {
+        d.didDrag = true;
         d.fx = event.x;
         d.fy = event.y;
       })
@@ -207,6 +212,10 @@ export function FanChart({ reports, focus, onFocus, onSelect }) {
       .on("pointerleave", () => onFocusRef.current?.(null))
       .on("click", (event, d) => {
         event.stopPropagation();
+        if (d.didDrag) {
+          d.didDrag = false;
+          return;
+        }
         onSelectRef.current?.(d);
       });
 
@@ -288,23 +297,16 @@ export function FanChart({ reports, focus, onFocus, onSelect }) {
     function ticked() {
       const { cx, cy, angleStart, angleEnd } = metrics;
       for (const d of nodes) {
-        if (d.y > cy) {
-          d.y = cy;
-          d.vy *= -0.25;
-        }
+        if (d.fx != null) continue;
         let a = Math.atan2(d.y - cy, d.x - cx);
         if (a > 0) a = a > Math.PI / 2 ? angleStart : angleEnd;
         if (d.kind === "project") {
-          a = Math.max(d.angleMin, Math.min(d.angleMax, a));
+          a = Math.max(d.angleMin + 0.012, Math.min(d.angleMax - 0.012, a));
         } else {
           a = Math.max(angleStart, Math.min(angleEnd, a));
         }
-        const r = Math.hypot(d.x - cx, d.y - cy) || d.ring;
-        // Keep a light polar clamp so the fan cannot invert.
-        if (Math.abs(r - d.ring) > d.ring * 0.45) {
-          d.x = cx + d.ring * Math.cos(a);
-          d.y = cy + d.ring * Math.sin(a);
-        }
+        d.x = cx + d.ring * Math.cos(a);
+        d.y = cy + d.ring * Math.sin(a);
       }
 
       linkSel
@@ -317,8 +319,8 @@ export function FanChart({ reports, focus, onFocus, onSelect }) {
 
       methodLabelSel.attr("transform", (d) => {
         const a = Math.atan2(d.y - cy, d.x - cx);
-        const inward = d.ring - 14 - (d.labelLines - 1) * 7;
-        const p = polar(cx, cy, Math.max(24, inward), a);
+        const inward = d.ring - d.r - 10 - (d.labelLines - 1) * 7;
+        const p = polar(cx, cy, Math.max(18, inward), a);
         return `translate(${p.x},${p.y})`;
       });
     }
@@ -338,6 +340,7 @@ export function FanChart({ reports, focus, onFocus, onSelect }) {
       sim.force("x").x((d) => metrics.cx + d.ring * Math.cos(d.angle));
       sim.force("y").y((d) => metrics.cy + d.ring * Math.sin(d.angle));
       drawStatic();
+      ticked();
       applyFocus(svgEl, focusRef.current, nodeById, graph.categories);
       sim.alpha(0.55).restart();
     }
