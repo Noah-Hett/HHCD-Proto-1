@@ -1,6 +1,6 @@
 # Shared HHCD report data
 
-`hhcd-reports.csv` is the source catalogue (~62 graduate/associate reports).
+`hhcd-reports.csv` is the source catalogue (64 graduate/associate reports).
 
 `packages/data/src/reports.json` is the version React apps import. If you edit the CSV, regenerate JSON:
 
