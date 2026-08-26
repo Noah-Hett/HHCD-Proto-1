@@ -343,7 +343,7 @@ function Detail({ detail, graph, onSelect, zoomedCategory }) {
       <p className="lede">
         {zoomedCategory
           ? "Inner marks are the methods used here — each has its own symbol. Hover a mark to read its name; the key on the right lists them all. Outer nodes are this category’s reports, spread around the semicircle by year."
-          : "Inner marks are research methods: each shape is a method, with the name beside it. See the key if a label is tight. Outer nodes are categories, sized by how many reports they hold. A curve means that method was used in that category. Line texture also marks category, not colour alone."}
+          : "Inner marks are research methods: each icon stands for a method (speech bubble for interviews, eye for observation, and so on). See the key if a label is tight. Outer nodes are categories, sized by how many reports they hold. A curve means that method was used in that category. Line texture also marks category, not colour alone."}
       </p>
       <p className="body">
         {zoomedCategory
@@ -355,16 +355,16 @@ function Detail({ detail, graph, onSelect, zoomedCategory }) {
 }
 
 function MethodGlyph({ name }) {
-  const mark = methodMark(name, 92);
+  const mark = methodMark(name);
   return (
     <svg
       className={`method-glyph is-${mark.ink}`}
       width="18"
       height="18"
-      viewBox="-9 -9 18 18"
+      viewBox="-10 -10 20 20"
       aria-hidden="true"
     >
-      <path d={mark.d} />
+      <path d={mark.d} fillRule={mark.rule ?? "nonzero"} />
     </svg>
   );
 }

@@ -1,18 +1,6 @@
-import {
-  symbol,
-  symbolAsterisk,
-  symbolCircle,
-  symbolDiamond,
-  symbolDiamond2,
-  symbolPlus,
-  symbolSquare,
-  symbolSquare2,
-  symbolStar,
-  symbolTriangle,
-  symbolTriangle2,
-  symbolWye,
-  symbolTimes,
-} from "d3";
+import { methodMark } from "./methodMarks.js";
+
+export { methodMark } from "./methodMarks.js";
 
 export const CATEGORY_ORDER = [
   "Transport",
@@ -55,29 +43,6 @@ export const METHOD_SHORT = {
   "Critical User Forums": "Forums",
 };
 
-const METHOD_MARK_SPEC = {
-  "Individual Interviews": { type: symbolCircle, ink: "fill" },
-  Observation: { type: symbolAsterisk, ink: "stroke" },
-  "Desk Research": { type: symbolSquare, ink: "fill" },
-  Workshops: { type: symbolWye, ink: "fill" },
-  Scenarios: { type: symbolTriangle, ink: "fill" },
-  Mapping: { type: symbolPlus, ink: "stroke" },
-  "Focus Groups": { type: symbolDiamond, ink: "fill" },
-  "Mockups and Rapid Prototyping": { type: symbolSquare2, ink: "stroke" },
-  "Co-Design": { type: symbolStar, ink: "fill" },
-  Personas: { type: symbolDiamond2, ink: "stroke" },
-  "Role Playing": { type: symbolTriangle2, ink: "stroke" },
-  "Critical User Forums": { type: symbolTimes, ink: "stroke" },
-};
-
-export function methodMark(name, size = 100) {
-  const spec = METHOD_MARK_SPEC[name] ?? { type: symbolCircle, ink: "fill" };
-  return {
-    d: symbol().type(spec.type).size(size)(),
-    ink: spec.ink,
-  };
-}
-
 export function categoryColor(category) {
   return CATEGORY_COLORS[category] ?? FALLBACK_COLOR;
 }
@@ -108,7 +73,7 @@ export function buildGraph(reports) {
           kind: "method",
           label: name,
           short: METHOD_SHORT[name] ?? name,
-          mark: methodMark(name, 100),
+          mark: methodMark(name),
           count: 0,
           projectIds: [],
           r: 8,

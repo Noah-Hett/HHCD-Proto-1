@@ -21,15 +21,13 @@ import {
   wrapLines,
 } from "./graph.js";
 
-function methodMarkSize(r) {
-  return (Math.max(8, r) * 1.55) ** 2;
-}
-
 function applyMethodMarks(sel) {
   sel.select("path.method-mark").each(function (d) {
-    const mark = methodMark(d.label, methodMarkSize(d.r));
+    const mark = methodMark(d.label);
     select(this)
       .attr("d", mark.d)
+      .attr("transform", `scale(${(d.r * 0.78) / 10})`)
+      .attr("fill-rule", mark.rule ?? "nonzero")
       .attr("class", `method-mark is-${mark.ink}`);
   });
 }
