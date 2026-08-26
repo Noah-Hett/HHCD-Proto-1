@@ -66,11 +66,10 @@ function yOnChord(nodeX, a, b) {
   return a.y + t * (b.y - a.y);
 }
 
-function projectAdj(nodes, edges) {
+function sameYearAdj(nodes, edges) {
   const ids = new Set(nodes.map((node) => node.id));
   const adj = new Map(nodes.map((node) => [node.id, []]));
   for (const edge of edges) {
-    if (edge.kind !== "project") continue;
     if (!ids.has(edge.source) || !ids.has(edge.target)) continue;
     adj.get(edge.source).push(edge.target);
     adj.get(edge.target).push(edge.source);
@@ -79,7 +78,7 @@ function projectAdj(nodes, edges) {
 }
 
 function connectedBlocks(nodes, edges) {
-  const adj = projectAdj(nodes, edges);
+  const adj = sameYearAdj(nodes, edges);
   const seen = new Set();
   const blocks = [];
 

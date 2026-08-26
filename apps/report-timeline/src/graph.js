@@ -114,21 +114,11 @@ export function buildGraph(reports) {
 
   const authorPairs = new Set();
   for (const list of authorIndex.values()) {
-    const ordered = [...list].sort((a, b) => {
-      const yearA = typeof a.year === "number" ? a.year : 0;
-      const yearB = typeof b.year === "number" ? b.year : 0;
-      return yearA - yearB || String(a.uid).localeCompare(String(b.uid));
-    });
-    for (let i = 0; i < ordered.length; i += 1) {
-      const current = ordered[i];
-      const currentYear = typeof current.year === "number" ? current.year : null;
-      if (currentYear == null) continue;
-      const next = ordered.find(
-        (candidate, index) =>
-          index > i && typeof candidate.year === "number" && candidate.year > currentYear,
-      );
-      if (!next) continue;
-      authorPairs.add(pairKey(current.uid, next.uid));
+    const unique = [...new Map(list.map((report) => [report.uid, report])).values()];
+    for (let i = 0; i < unique.length; i += 1) {
+      for (let j = i + 1; j < unique.length; j += 1) {
+        authorPairs.add(pairKey(unique[i].uid, unique[j].uid));
+      }
     }
   }
 

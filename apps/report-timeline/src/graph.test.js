@@ -64,14 +64,15 @@ test("builds project edges only for report numbers that exist", () => {
   assert.ok(skippedConnections.some((item) => item.to === "166"));
 });
 
-test("draws a dotted successor to the earliest later report by a shared author", () => {
+test("draws a dotted line between every pair of reports that share an author", () => {
   const { edges } = buildGraph(reports);
   const author = edges.filter((edge) => edge.kind === "author");
   const pairs = new Set(author.map((edge) => [edge.source, edge.target].sort().join("::")));
   assert.ok(pairs.has("1::21"));
   assert.ok(pairs.has("194::195"));
   assert.ok(pairs.has("167::204"));
-  assert.equal(pairs.has("112::195"), false);
+  assert.ok(pairs.has("112::195"));
+  assert.ok(pairs.has("73::75"));
 });
 
 test("curves both lines when a pair has project and author links", () => {

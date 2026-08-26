@@ -42,7 +42,7 @@ function SidePanel({ report, edges, reportsById, onClose, onOpen }) {
     if (!other) continue;
     linked.push({
       report: other,
-      label: edge.kind === "project" ? "Project connection" : "Same author (next report)",
+      label: edge.kind === "project" ? "Project connection" : "Shared author",
     });
   }
 
@@ -204,7 +204,7 @@ export default function App() {
                   strokeDasharray="3 3"
                 />
               </svg>
-              Next report by the same author
+              Shared author
             </li>
           </ul>
         </div>
