@@ -3,9 +3,16 @@
     {
       "id": "overview",
       "title": "Dataset overview",
-      "goal": "See all 62 reports at a glance \u2014 categories, years, and a filterable catalogue.",
+      "goal": "See all 62 reports at a glance — categories, years, and a filterable catalogue.",
       "owner": "shared",
       "status": "live"
+    },
+    {
+      "id": "report-search",
+      "title": "Report search",
+      "goal": "Find reports by meaning: typed queries become method, year, and category filters plus ranked full-text.",
+      "owner": "Noah",
+      "status": "draft"
     }
   ]
 }

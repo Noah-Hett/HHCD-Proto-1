@@ -1,0 +1,291 @@
+@import "@hhcd/theme/tokens.css";
+
+.search-page {
+  padding: 16px 16px 48px;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.hero {
+  margin-bottom: 20px;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.lede {
+  margin: 0 0 16px;
+  max-width: 40rem;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.search-box input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 18px;
+}
+
+.search-box input:focus {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+.chips,
+.examples,
+.suggest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.chips li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 4px 4px 8px;
+  border: 1px solid var(--text);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.chips button,
+.examples button,
+.suggest button,
+.clear {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}
+
+.chips button {
+  width: 20px;
+  height: 20px;
+  line-height: 1;
+}
+
+.examples button,
+.suggest button {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 2px 8px;
+  color: var(--text);
+}
+
+.examples button:hover,
+.suggest button:hover,
+.chips li:hover,
+.clear:hover {
+  background: var(--hover);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+.facets h2,
+.list-head h2 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.facets section + section {
+  margin-top: 18px;
+}
+
+.facets ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.facets button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.facets button:hover,
+.facets button.active {
+  background: var(--hover);
+}
+
+.facets .count {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.list-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.list-head h2 span,
+.clear {
+  color: var(--muted);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.catalogue {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.catalogue li {
+  border-top: 1px solid var(--border);
+}
+
+.catalogue li:last-child {
+  border-bottom: 1px solid var(--border);
+}
+
+.row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 3.2rem 1fr;
+  gap: 12px;
+  padding: 12px 4px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.catalogue li.active .row,
+.row:hover {
+  background: var(--hover);
+}
+
+.year {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  padding-top: 2px;
+}
+
+.catalogue strong {
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.meta,
+.snippet,
+.why {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.why {
+  font-size: 12px;
+}
+
+.method-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 8px 0 0;
+}
+
+.method-tags span {
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  font-size: 11px;
+  color: var(--text);
+}
+
+mark {
+  background: #ffe08a;
+  color: inherit;
+  padding: 0 1px;
+}
+
+.detail {
+  padding: 0 4px 16px 3.2rem;
+  display: grid;
+  gap: 10px;
+}
+
+.detail p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.detail span {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.empty {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+@media (max-width: 800px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+}
