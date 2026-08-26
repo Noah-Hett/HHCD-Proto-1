@@ -270,38 +270,114 @@ export function createReportMesh(report, shared) {
   return { group, pickable, texture, coverMat };
 }
 
+export const PEEK_REST = 4;
+export const PEEK_SELECT = 8;
+const PEEK_SLOT = 0.03;
+const ROW_GAP_Z = 2.15;
+
 export function folderSpacing(count) {
-  if (count <= 4) return 1.42;
-  if (count <= 5) return 1.18;
-  if (count <= 6) return 1.02;
-  return 0.88;
+  if (count <= 3) return 1.55;
+  if (count <= 4) return 1.32;
+  if (count <= 5) return 1.14;
+  return 0.98;
 }
 
-export function computeLayout(folders) {
+export function layoutColumns(folderCount, twoRows) {
+  if (!twoRows) return folderCount;
+  return Math.ceil(folderCount / 2);
+}
+
+function folderGridPosition(index, n, twoRows) {
+  if (!twoRows) {
+    const spacing = folderSpacing(n);
+    return {
+      x: -((n - 1) * spacing) / 2 + index * spacing,
+      y: 0,
+      z: 0,
+      spacing,
+    };
+  }
+  const cols = Math.ceil(n / 2);
+  const row = index < cols ? 0 : 1;
+  const col = row === 0 ? index : index - cols;
+  const rowCount = row === 0 ? Math.min(cols, n) : n - cols;
+  const spacing = folderSpacing(Math.max(rowCount, 1));
+  return {
+    x: -((rowCount - 1) * spacing) / 2 + col * spacing,
+    y: 0,
+    z: row === 0 ? -ROW_GAP_Z / 2 : ROW_GAP_Z / 2,
+    spacing,
+  };
+}
+
+export function shouldUseTwoRows(width, height) {
+  const w = Math.max(width, 1);
+  const h = Math.max(height, 1);
+  return w < 700 || w / h < 1.15;
+}
+
+export function layoutExtents(layout) {
+  const positions = Object.values(layout.folderPos);
+  if (!positions.length) {
+    return {
+      minX: -FOLDER_W,
+      maxX: FOLDER_W,
+      minZ: 0,
+      maxZ: FOLDER_D,
+      width: FOLDER_W * 2,
+      depth: FOLDER_D,
+    };
+  }
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  for (const pos of positions) {
+    minX = Math.min(minX, pos.x);
+    maxX = Math.max(maxX, pos.x + FOLDER_W);
+    minZ = Math.min(minZ, pos.z);
+    maxZ = Math.max(maxZ, pos.z + FOLDER_D);
+  }
+  return {
+    minX,
+    maxX,
+    minZ,
+    maxZ,
+    width: maxX - minX,
+    depth: maxZ - minZ,
+  };
+}
+
+export function computeLayout(folders, { twoRows = false } = {}) {
   const n = folders.length;
-  const spacing = folderSpacing(n);
   const folderPos = {};
   const reportPos = {};
-  const innerW = FOLDER_W - WALL * 2 - 0.04;
+  let spacing = folderSpacing(layoutColumns(n, twoRows));
 
   folders.forEach((folder, index) => {
-    const x = -((n - 1) * spacing) / 2 + index * spacing;
-    folderPos[folder.id] = { x, y: 0, z: 0, folder };
+    const grid = folderGridPosition(index, n, twoRows);
+    spacing = grid.spacing;
+    folderPos[folder.id] = { x: grid.x, y: grid.y, z: grid.z, folder };
     const count = folder.reports.length;
-    const slot = Math.min(0.03, innerW / Math.max(count, 1));
+    const restN = Math.min(PEEK_REST, count);
+    const selectN = Math.min(PEEK_SELECT, count);
     folder.reports.forEach((report, slotIndex) => {
-      const xOff = (slotIndex - (count - 1) / 2) * slot;
+      const pack = (shown) =>
+        FOLDER_W * 0.5 + (slotIndex - (shown - 1) / 2) * PEEK_SLOT;
       reportPos[report.reportNo] = {
-        x: FOLDER_W * 0.5 + xOff,
+        x: slotIndex < restN ? pack(restN) : FOLDER_W * 0.5,
+        selectX: slotIndex < selectN ? pack(selectN) : FOLDER_W * 0.5,
         y: WALL + REPORT_H * 0.5,
         z: WALL + REPORT_D * 0.5 + 0.06,
         rx: 0.05,
         folderId: folder.id,
         slotIndex,
         count,
+        visibleAtRest: slotIndex < PEEK_REST,
+        visibleOnSelect: slotIndex < PEEK_SELECT,
       };
     });
   });
 
-  return { folderPos, reportPos, folders, spacing, count: n };
+  return { folderPos, reportPos, folders, spacing, count: n, twoRows };
 }

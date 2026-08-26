@@ -38,9 +38,28 @@ input:focus-visible {
 .archive {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   position: relative;
   color: var(--archive-ink);
+}
+
+.archive.is-stacked {
+  overflow: auto;
+}
+
+.archive-bar {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  background: rgba(247, 241, 232, 0.96);
+  border-bottom: 1px solid var(--archive-line);
+  z-index: 3;
 }
 
 .skip-link {
@@ -73,10 +92,7 @@ input:focus-visible {
 }
 
 .stage {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  height: 100%;
+  flex: 1;
   min-height: 0;
   display: flex;
   background: var(--archive-bg);
@@ -127,32 +143,14 @@ input:focus-visible {
   box-shadow: 0 0 0 2px #fff;
 }
 
-.scene-chrome {
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  top: 12px;
-  z-index: 2;
-  pointer-events: none;
-}
-
-.scene-chrome-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
 .grouping-tabs {
   display: flex;
   gap: 6px;
-  pointer-events: auto;
   padding: 4px;
   margin: 0;
   min-inline-size: auto;
   border-radius: 999px;
-  background: rgba(247, 241, 232, 0.94);
+  background: #f7f1e8;
   border: 1px solid var(--archive-line);
 }
 
@@ -192,15 +190,18 @@ input:focus-visible {
   margin: 0;
   font-size: 13px;
   color: var(--archive-ink);
-  background: rgba(247, 241, 232, 0.9);
-  padding: 8px 12px;
-  border-radius: 999px;
+  padding: 8px 4px;
   font-variant-numeric: tabular-nums;
 }
 
 .scene-hint {
   pointer-events: none;
-  margin: 10px 0 0;
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 12px;
+  z-index: 2;
+  margin: 0;
   max-width: 36rem;
   font-size: 13px;
   line-height: 1.45;
@@ -225,7 +226,8 @@ input:focus-visible {
 }
 
 .panel {
-  width: min(22.5rem, 40vw);
+  width: 20rem;
+  max-width: 20rem;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -475,28 +477,30 @@ input:focus-visible {
   text-underline-offset: 3px;
 }
 
-.chapters {
-  pointer-events: none;
-}
-
-.chapter {
-  height: 85vh;
-}
-
 @media (max-width: 860px) {
   .stage {
+    flex: none;
     flex-direction: column;
+    height: auto;
   }
 
   .stage-visual {
-    height: 58%;
+    flex: none;
+    height: 45vh;
+    min-height: 16rem;
+    max-height: 70vh;
   }
 
   .panel {
     width: 100%;
-    height: 42%;
+    max-width: none;
+    height: auto;
     border-left: 0;
     border-top: 1px solid var(--archive-line);
+  }
+
+  .panel-scroll {
+    overflow: visible;
   }
 
   .scene-hint {
@@ -510,9 +514,8 @@ input:focus-visible {
     display: none;
   }
 
-  .scene-chrome {
+  .archive-bar {
     position: static;
-    padding: 12px;
   }
 
   .stage {
@@ -522,6 +525,7 @@ input:focus-visible {
 
   .panel {
     width: 100%;
+    max-width: none;
     border-left: 0;
   }
 

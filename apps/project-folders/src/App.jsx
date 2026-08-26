@@ -8,9 +8,10 @@ import {
   findReport,
   folderForReport,
   groupReports,
-  morphFromProgress,
-  progressForGrouping,
 } from "./grouping.js";
+
+const STACKED_QUERY = "(max-width: 860px)";
+const GROUPING_IDS = GROUPINGS.map((item) => item.id);
 
 function prefersReducedMotion() {
   if (typeof window === "undefined" || !window.matchMedia) return false;
@@ -25,17 +26,28 @@ function groupingLabel(id) {
   return GROUPINGS.find((item) => item.id === id)?.label ?? id;
 }
 
+function stepGrouping(id, direction) {
+  const index = GROUPING_IDS.indexOf(id);
+  const next = index + direction;
+  if (next < 0 || next >= GROUPING_IDS.length) return id;
+  return GROUPING_IDS[next];
+}
+
 export default function App() {
-  const scrollRef = useRef(null);
+  const stageRef = useRef(null);
   const detailHeadingRef = useRef(null);
   const lastTriggerRef = useRef(null);
-  const [progress, setProgress] = useState(0);
   const [grouping, setGrouping] = useState("theme");
   const [selectedFolderId, setSelectedFolderId] = useState(null);
   const [selectedReportNo, setSelectedReportNo] = useState(null);
   const [reduceMotion, setReduceMotion] = useState(prefersReducedMotion);
   const [webglFailed, setWebglFailed] = useState(false);
   const [announcement, setAnnouncement] = useState("");
+  const [stacked, setStacked] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia
+      ? window.matchMedia(STACKED_QUERY).matches
+      : false,
+  );
 
   const folders = useMemo(() => groupReports(grouping), [grouping]);
   const selectedReport = selectedReportNo
@@ -44,10 +56,19 @@ export default function App() {
   const selectedFolder =
     folders.find((folder) => folder.id === selectedFolderId) ?? null;
   const groupingMeta = GROUPINGS.find((item) => item.id === grouping);
+  const wheelGrouping = !stacked && !reduceMotion;
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
     const onChange = () => setReduceMotion(media.matches);
+    onChange();
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+
+  useEffect(() => {
+    const media = window.matchMedia(STACKED_QUERY);
+    const onChange = () => setStacked(media.matches);
     onChange();
     media.addEventListener("change", onChange);
     return () => media.removeEventListener("change", onChange);
@@ -76,26 +97,27 @@ export default function App() {
     return () => window.clearTimeout(handle);
   }, [grouping, folders.length]);
 
-  const onScroll = () => {
-    const root = scrollRef.current;
-    if (!root || reduceMotion) return;
-    const max = root.scrollHeight - root.clientHeight;
-    const next = max > 0 ? (root.scrollTop / max) * 2 : 0;
-    setProgress(next);
-    setGrouping(morphFromProgress(next).grouping);
-  };
+  useEffect(() => {
+    const root = stageRef.current;
+    if (!root || !wheelGrouping) return undefined;
+    let acc = 0;
+    const onWheel = (event) => {
+      event.preventDefault();
+      acc += event.deltaY;
+      if (acc > 90) {
+        acc = 0;
+        setGrouping((id) => stepGrouping(id, 1));
+      } else if (acc < -90) {
+        acc = 0;
+        setGrouping((id) => stepGrouping(id, -1));
+      }
+    };
+    root.addEventListener("wheel", onWheel, { passive: false });
+    return () => root.removeEventListener("wheel", onWheel);
+  }, [wheelGrouping]);
 
   const goToGrouping = (id) => {
     setGrouping(id);
-    if (reduceMotion) {
-      setProgress(progressForGrouping(id));
-      return;
-    }
-    const root = scrollRef.current;
-    if (!root) return;
-    const max = root.scrollHeight - root.clientHeight;
-    const t = progressForGrouping(id) / 2;
-    root.scrollTo({ top: t * max, behavior: "smooth" });
   };
 
   const selectFolder = (id, trigger) => {
@@ -136,9 +158,15 @@ export default function App() {
     lastTriggerRef.current?.focus?.();
   };
 
+  const hint = reduceMotion
+    ? groupingMeta?.description
+    : wheelGrouping
+      ? "Tabs or a wheel on the shelves regroup the archive. Each folder shows a peek of documents; the list has the full set. Click a folder to fan more peeks; click a report to slide it out."
+      : "Use the grouping tabs to re-shelf the archive. Each folder shows a peek of documents; the list has the full set. Click a folder to fan more peeks; click a report to slide it out.";
+
   return (
     <Shell fill title="Project folders">
-      <div className="archive" ref={scrollRef} onScroll={onScroll}>
+      <div className={`archive ${stacked ? "is-stacked" : "is-wide"}`}>
         <a className="skip-link" href="#folder-index">
           Skip 3D scene, browse folders as a list
         </a>
@@ -146,8 +174,32 @@ export default function App() {
           {announcement}
         </div>
 
+        <header className="archive-bar">
+          <fieldset className="grouping-tabs">
+            <legend className="sr-only">Regroup the archive</legend>
+            {GROUPINGS.map((item) => (
+              <label
+                key={item.id}
+                className={grouping === item.id ? "is-active" : ""}
+              >
+                <input
+                  type="radio"
+                  name="archive-grouping"
+                  value={item.id}
+                  checked={grouping === item.id}
+                  onChange={() => goToGrouping(item.id)}
+                />
+                {item.label}
+              </label>
+            ))}
+          </fieldset>
+          <p className="scene-status">
+            {reports.length} reports · {folders.length} folders
+          </p>
+        </header>
+
         <div className="stage">
-          <div className="stage-visual">
+          <div className="stage-visual" ref={stageRef}>
             {webglFailed ? (
               <div className="webgl-fallback" role="status">
                 <p>
@@ -157,7 +209,6 @@ export default function App() {
               </div>
             ) : (
               <ArchiveScene
-                progress={progress}
                 grouping={grouping}
                 reduceMotion={reduceMotion}
                 selectedFolderId={selectedFolderId}
@@ -167,37 +218,7 @@ export default function App() {
                 onWebglError={() => setWebglFailed(true)}
               />
             )}
-
-            <div className="scene-chrome">
-              <div className="scene-chrome-top">
-                <fieldset className="grouping-tabs">
-                  <legend className="sr-only">Regroup the archive</legend>
-                  {GROUPINGS.map((item) => (
-                    <label
-                      key={item.id}
-                      className={grouping === item.id ? "is-active" : ""}
-                    >
-                      <input
-                        type="radio"
-                        name="archive-grouping"
-                        value={item.id}
-                        checked={grouping === item.id}
-                        onChange={() => goToGrouping(item.id)}
-                      />
-                      {item.label}
-                    </label>
-                  ))}
-                </fieldset>
-                <p className="scene-status">
-                  {reports.length} reports · {folders.length} folders
-                </p>
-              </div>
-              <p className="scene-hint">
-                {reduceMotion
-                  ? groupingMeta?.description
-                  : "Scroll the page to regroup the archive. Folders slide off the sides; reports lift, then drop into the new shelves. Click a folder to pull it forward; click a report to slide it out."}
-              </p>
-            </div>
+            <p className="scene-hint">{hint}</p>
           </div>
 
           <aside className="panel" aria-label="Folder list and report details">
@@ -231,14 +252,6 @@ export default function App() {
             </div>
           </aside>
         </div>
-
-        {!reduceMotion && (
-          <div className="chapters" aria-hidden="true">
-            <div id="chapter-theme" className="chapter" />
-            <div id="chapter-year" className="chapter" />
-            <div id="chapter-type" className="chapter" />
-          </div>
-        )}
       </div>
     </Shell>
   );
@@ -255,10 +268,10 @@ function FolderIndex({
     <div>
       <h1 className="panel-title">Project folders</h1>
       <p className="panel-lead">
-        {groupingMeta?.description} Each ring-bound document is one HHCD
-        report. Jackets are mostly paper-white, with a few tinted covers —
-        colour is decorative, not a theme code. Theme, year, and type live in
-        the folder grouping and in this list.
+        {groupingMeta?.description} The shelves show a peek of documents in
+        each folder — this list is the full set. Jackets are mostly
+        paper-white, with a few tinted covers; colour is decorative, not a
+        theme code.
       </p>
 
       <h2 className="panel-kicker" id="folder-heading">
