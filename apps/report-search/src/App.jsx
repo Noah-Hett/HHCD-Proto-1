@@ -2,362 +2,270 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { reports } from "@hhcd/data";
 import { Shell } from "@hhcd/shell";
 import "@hhcd/shell/shell.css";
-import {
-  appliedChips,
-  buildVocab,
-  filterKey,
-  search,
-  highlightParts,
-} from "./search.js";
+import { buildIndex, buildVocab, highlightParts, search } from "./search.js";
 
-const EXAMPLES = [
-  "health interviews 2001",
-  "urban lighting",
-  "observation workplace",
-  "taxi",
-  "aging vertical city",
+const PROMPTS = [
+  "growing older",
+  "light at night",
+  "waiting at the airport",
+  "working from home",
+  "how people move",
 ];
 
 const vocab = buildVocab(reports);
+const index = buildIndex(reports);
 
 function Marks({ text, terms }) {
-  return highlightParts(text, terms).map((part, index) =>
-    part.hit ? <mark key={index}>{part.text}</mark> : <span key={index}>{part.text}</span>,
+  return highlightParts(text, terms).map((part, i) =>
+    part.hit ? <mark key={i}>{part.text}</mark> : <span key={i}>{part.text}</span>,
   );
-}
-
-function toggleValue(list, value) {
-  return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
 }
 
 export default function App() {
   const [query, setQuery] = useState("");
-  const [manual, setManual] = useState({
-    methods: [],
-    categories: [],
-    projectTypes: [],
-    years: [],
-  });
-  const [suppressed, setSuppressed] = useState([]);
-  const [expanded, setExpanded] = useState(null);
   const [active, setActive] = useState(0);
+  const [selected, setSelected] = useState(null);
   const inputRef = useRef(null);
+  const popItemsRef = useRef([]);
 
   const result = useMemo(
-    () => search(reports, query, { manual, suppressed, vocab }),
-    [query, manual, suppressed],
+    () => search(reports, query, { vocab, index }),
+    [query],
   );
 
-  useEffect(() => {
-    const still = new Set(
-      appliedChips(result.parsed.filters).map((chip) => chip.key),
-    );
-    setSuppressed((current) => {
-      const next = current.filter((key) => still.has(key));
-      return next.length === current.length ? current : next;
-    });
-  }, [query, result.parsed.filters]);
+  const popItems = useMemo(() => {
+    const items = [];
+    for (const item of result.pops) items.push({ type: "report", key: `p-${item.key}`, item });
+    for (const item of result.nearby) items.push({ type: "nearby", key: `n-${item.key}`, item });
+    return items;
+  }, [result.pops, result.nearby]);
+  popItemsRef.current = popItems;
 
   useEffect(() => {
     setActive(0);
-  }, [query, manual, suppressed]);
+  }, [query]);
 
   useEffect(() => {
     function onKey(event) {
-      const inInput = event.target === inputRef.current;
-      if (event.key === "/" && !inInput && event.target.tagName !== "INPUT") {
+      const items = popItemsRef.current;
+      if (event.key === "/" && event.target.tagName !== "INPUT") {
         event.preventDefault();
         inputRef.current?.focus();
         return;
       }
       if (event.key === "Escape") {
-        if (expanded) {
-          setExpanded(null);
+        if (selected) {
+          setSelected(null);
           return;
         }
-        if (query || result.chips.length) {
+        if (query) {
           setQuery("");
-          setManual({ methods: [], categories: [], projectTypes: [], years: [] });
-          setSuppressed([]);
           inputRef.current?.focus();
         }
         return;
       }
-      if (!result.results.length) return;
+      if (!items.length) return;
       if (event.key === "ArrowDown") {
         event.preventDefault();
-        setActive((index) => Math.min(result.results.length - 1, index + 1));
+        setActive((value) => Math.min(items.length - 1, value + 1));
       }
       if (event.key === "ArrowUp") {
         event.preventDefault();
-        setActive((index) => Math.max(0, index - 1));
+        setActive((value) => Math.max(0, value - 1));
       }
-      if (event.key === "Enter" && !inInput) {
-        const item = result.results[active];
-        if (item) setExpanded((current) => (current === item.key ? null : item.key));
+      if (event.key === "Enter") {
+        const current = items[active];
+        if (current?.item) {
+          event.preventDefault();
+          setSelected(current.item.key);
+        }
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [active, expanded, query, result.chips.length, result.results]);
+  }, [active, query, selected]);
 
-  function removeChip(chip) {
-    if ((manual[chip.dimension] ?? []).some((value) => value === chip.value)) {
-      setManual((current) => ({
-        ...current,
-        [chip.dimension]: current[chip.dimension].filter((value) => value !== chip.value),
-      }));
-      return;
-    }
-    setSuppressed((current) =>
-      current.includes(chip.key) ? current : [...current, chip.key],
-    );
+  const selectedReport =
+    result.all.find((item) => item.key === selected)?.report ??
+    reports.find((report, i) => (report.reportNo ? `n-${report.reportNo}` : `i-${i}`) === selected);
+
+  const terms = result.highlightTerms;
+  const open = !result.idle;
+
+  function applyPrompt(text) {
+    setQuery(text);
+    setSelected(null);
+    inputRef.current?.focus();
   }
-
-  function toggleFacet(dimension, value) {
-    const key = filterKey(dimension, value);
-    const applied = result.chips.some((chip) => chip.key === key);
-    if (applied) {
-      removeChip({ dimension, value, key });
-      return;
-    }
-    setSuppressed((current) => current.filter((item) => item !== key));
-    setManual((current) => ({
-      ...current,
-      [dimension]: toggleValue(current[dimension] ?? [], value),
-    }));
-  }
-
-  function acceptSuggestion(item) {
-    setSuppressed((current) => current.filter((key) => key !== item.key));
-    setManual((current) => ({
-      ...current,
-      [item.dimension]: toggleValue(current[item.dimension] ?? [], item.value),
-    }));
-  }
-
-  const terms = result.remainderTerms;
 
   return (
     <Shell title="Report search">
-      <div className="search-page">
-        <header className="hero">
-          <p className="eyebrow">{reports.length} reports · 2000–2017</p>
-          <h1>Search the catalogue by what you mean</h1>
+      <div className="stage">
+        <div className="omni">
+          <p className="eyebrow">{reports.length} reports to wander through</p>
+          <h1>What are you curious about?</h1>
           <p className="lede">
-            Type a method, year, category, or any words from a project. Known
-            catalogue values become filters; leftover words still search titles
-            and descriptions.
+            Ask the way you would a person — lighting, growing older, taxis.
+            Close matches float up; everything else stays on the table.
           </p>
-          <label className="search-box">
-            <span className="sr-only">Search reports</span>
-            <input
-              ref={inputRef}
-              type="search"
-              autoFocus
-              placeholder="health interviews 2001"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </label>
-          {result.chips.length > 0 && (
-            <ul className="chips">
-              {result.chips.map((chip) => (
-                <li key={chip.key}>
-                  <span>{chip.label}</span>
-                  <button
-                    type="button"
-                    aria-label={`Remove ${chip.label}`}
-                    onClick={() => removeChip(chip)}
-                  >
-                    ×
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-          {result.suggestions.length > 0 && (
-            <p className="suggest">
-              Also filter by{" "}
-              {result.suggestions.map((item) => (
-                <button
-                  type="button"
-                  key={item.key}
-                  onClick={() => acceptSuggestion(item)}
-                >
-                  {item.dimension === "methods" ? "method" : item.dimension === "projectTypes" ? "type" : "category"}: {item.value}
-                </button>
-              ))}
-            </p>
-          )}
-          {result.idle && (
-            <p className="examples">
-              Try{" "}
-              {EXAMPLES.map((example) => (
-                <button
-                  type="button"
-                  key={example}
-                  onClick={() => {
-                    setQuery(example);
-                    inputRef.current?.focus();
-                  }}
-                >
-                  {example}
-                </button>
-              ))}
-            </p>
-          )}
-        </header>
-
-        <div className="layout">
-          <aside className="facets">
-            <Facet
-              title="Methods"
-              items={result.facets.methods}
-              applied={result.filters.methods}
-              onToggle={(value) => toggleFacet("methods", value)}
-            />
-            <Facet
-              title="Category"
-              items={result.facets.categories}
-              applied={result.filters.categories}
-              onToggle={(value) => toggleFacet("categories", value)}
-            />
-            <Facet
-              title="Year"
-              items={result.facets.years}
-              applied={result.filters.years}
-              onToggle={(value) => toggleFacet("years", value)}
-            />
-            <Facet
-              title="Project type"
-              items={result.facets.projectTypes}
-              applied={result.filters.projectTypes}
-              onToggle={(value) => toggleFacet("projectTypes", value)}
-            />
-          </aside>
-
-          <section className="results" aria-live="polite">
-            <div className="list-head">
-              <h2>
-                {result.idle ? "All reports" : "Results"}
-                <span> {result.results.length}</span>
-              </h2>
-              {!result.idle && (
-                <button
-                  type="button"
-                  className="clear"
-                  onClick={() => {
-                    setQuery("");
-                    setManual({
-                      methods: [],
-                      categories: [],
-                      projectTypes: [],
-                      years: [],
-                    });
-                    setSuppressed([]);
-                  }}
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-            {result.results.length === 0 ? (
-              <p className="empty">No reports match this search. Drop a filter or try another word.</p>
-            ) : (
-              <ul className="catalogue">
-                {result.results.map((item, index) => (
-                  <li
-                    key={item.key}
-                    className={
-                      item.key === expanded
-                        ? "open active"
-                        : index === active
-                          ? "active"
-                          : ""
-                    }
-                  >
-                    <button
-                      type="button"
-                      className="row"
-                      onClick={() =>
-                        setExpanded((current) => (current === item.key ? null : item.key))
-                      }
-                    >
-                      <span className="year">{item.report.year ?? "—"}</span>
-                      <div>
-                        <strong>
-                          <Marks text={item.report.title} terms={terms} />
-                        </strong>
-                        <p className="meta">
-                          {item.report.author}
-                          {item.report.projectType ? ` · ${item.report.projectType}` : ""}
-                          {item.report.category ? ` · ${item.report.category}` : ""}
-                        </p>
-                        <p className="snippet">
-                          <Marks text={item.snippet.text} terms={terms} />
-                        </p>
-                        {item.reasons.length > 0 && (
-                          <p className="why">{item.reasons.join(" · ")}</p>
-                        )}
-                        {(item.report.methodsPrimary ?? []).length > 0 && (
-                          <p className="method-tags">
-                            {item.report.methodsPrimary.map((method) => (
-                              <span key={method}>{method}</span>
-                            ))}
-                          </p>
-                        )}
-                      </div>
-                    </button>
-                    {item.key === expanded && (
-                      <div className="detail">
-                        <Detail label="Description" text={item.report.description} terms={terms} />
-                        <Detail label="Findings" text={item.report.findings} terms={terms} />
-                        <Detail label="Outputs" text={item.report.outputs} terms={terms} />
-                        <Detail label="Partner" text={item.report.partner} terms={terms} />
-                        <Detail label="Targeted user" text={item.report.targetedUser} terms={terms} />
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
+          <div className="float">
+            <label className="search-box">
+              <span className="sr-only">Search reports</span>
+              <input
+                ref={inputRef}
+                type="search"
+                autoFocus
+                placeholder="lighting, growing older, how people wait…"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                aria-expanded={open}
+                aria-controls="search-pop"
+              />
+            </label>
+            {open && (
+              <div className="pop" id="search-pop" role="listbox">
+                {result.corrections.length > 0 && (
+                  <p className="didyou">
+                    Treating{" "}
+                    {result.corrections.map((item, i) => (
+                      <span key={item.from}>
+                        {i ? ", " : ""}
+                        <s>{item.from}</s> as <button type="button" onClick={() => applyPrompt(item.to)}>{item.to}</button>
+                      </span>
+                    ))}
+                  </p>
+                )}
+                {result.themes.length > 0 && (
+                  <div className="heard">
+                    {result.themes.map((theme) => (
+                      <button
+                        type="button"
+                        key={`${theme.kind}-${theme.label}`}
+                        onClick={() => applyPrompt(String(theme.value ?? theme.label))}
+                      >
+                        {theme.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {result.pops.length > 0 && (
+                  <section>
+                    <h2>Close by</h2>
+                    <ul>
+                      {result.pops.map((item, index) => (
+                        <li key={item.key}>
+                          <button
+                            type="button"
+                            className={index === active ? "on" : ""}
+                            onMouseEnter={() => setActive(index)}
+                            onClick={() => setSelected(item.key)}
+                          >
+                            <span className="year">{item.report.year ?? "—"}</span>
+                            <span>
+                              <strong>
+                                <Marks text={item.report.title} terms={terms} />
+                              </strong>
+                              <em>
+                                <Marks text={item.snippet.text} terms={terms} />
+                              </em>
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+                {result.nearby.length > 0 && (
+                  <section>
+                    <h2>In the same neighbourhood</h2>
+                    <ul>
+                      {result.nearby.map((item, index) => {
+                        const pos = result.pops.length + index;
+                        return (
+                          <li key={item.key}>
+                            <button
+                              type="button"
+                              className={pos === active ? "on" : ""}
+                              onMouseEnter={() => setActive(pos)}
+                              onClick={() => setSelected(item.key)}
+                            >
+                              <span className="year">{item.report.year ?? "—"}</span>
+                              <span>
+                                <strong>
+                                  <Marks text={item.report.title} terms={terms} />
+                                </strong>
+                                <em>{item.report.category}</em>
+                              </span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </section>
+                )}
+                {result.pops.length === 0 && (
+                  <p className="empty">Nothing close yet — try a place, a feeling, or a way of working.</p>
+                )}
+              </div>
             )}
-          </section>
+          </div>
+          {result.idle && (
+            <p className="prompts">
+              {PROMPTS.map((prompt) => (
+                <button type="button" key={prompt} onClick={() => applyPrompt(prompt)}>
+                  {prompt}
+                </button>
+              ))}
+            </p>
+          )}
+        </div>
+
+        <div className="body">
+          <ul className={`field ${open ? "searching" : ""}`}>
+            {result.all.map((item) => (
+              <li key={item.key} className={`${item.glow}${item.key === selected ? " picked" : ""}`}>
+                <button type="button" onClick={() => setSelected(item.key)}>
+                  <span className="year">{item.report.year ?? "—"}</span>
+                  {item.report.title}
+                </button>
+              </li>
+            ))}
+          </ul>
+          {selectedReport && (
+            <aside className="peek">
+              <p className="peek-kicker">
+                {selectedReport.year} · {selectedReport.category}
+                <button type="button" className="close" onClick={() => setSelected(null)} aria-label="Close">
+                  ×
+                </button>
+              </p>
+              <h2>{selectedReport.title}</h2>
+              <p className="meta">
+                {selectedReport.author}
+                {selectedReport.projectType ? ` · ${selectedReport.projectType}` : ""}
+              </p>
+              <PeekBlock label="About" text={selectedReport.description} terms={terms} />
+              <PeekBlock label="Findings" text={selectedReport.findings} terms={terms} />
+              <PeekBlock label="What came of it" text={selectedReport.outputs} terms={terms} />
+              {selectedReport.targetedUser && (
+                <PeekBlock label="Who for" text={selectedReport.targetedUser} terms={terms} />
+              )}
+              {(selectedReport.methodsPrimary ?? []).length > 0 && (
+                <p className="method-tags">
+                  {selectedReport.methodsPrimary.map((method) => (
+                    <span key={method}>{method}</span>
+                  ))}
+                </p>
+              )}
+            </aside>
+          )}
         </div>
       </div>
     </Shell>
   );
 }
 
-function Facet({ title, items, applied, onToggle }) {
-  if (!items.length) return null;
-  return (
-    <section>
-      <h2>{title}</h2>
-      <ul>
-        {items.map((item) => {
-          const active = applied.some(
-            (value) => String(value).toLowerCase() === String(item.label).toLowerCase(),
-          );
-          return (
-            <li key={String(item.label)}>
-              <button
-                type="button"
-                className={active ? "active" : ""}
-                onClick={() => onToggle(item.label)}
-              >
-                <span className="label">{item.label}</span>
-                <span className="count">{item.count}</span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    </section>
-  );
-}
-
-function Detail({ label, text, terms }) {
+function PeekBlock({ label, text, terms }) {
   if (!text) return null;
   return (
     <p>

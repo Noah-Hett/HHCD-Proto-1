@@ -138,6 +138,209 @@ export function tokenize(text) {
     .filter((token) => token && !STOPWORDS.has(token));
 }
 
+export function levenshtein(a, b) {
+  const left = String(a).toLowerCase();
+  const right = String(b).toLowerCase();
+  if (left === right) return 0;
+  const m = left.length;
+  const n = right.length;
+  if (Math.abs(m - n) > 2) return 99;
+  const prev = new Array(n + 1);
+  const next = new Array(n + 1);
+  for (let j = 0; j <= n; j += 1) prev[j] = j;
+  for (let i = 1; i <= m; i += 1) {
+    next[0] = i;
+    for (let j = 1; j <= n; j += 1) {
+      const cost = left[i - 1] === right[j - 1] ? 0 : 1;
+      next[j] = Math.min(prev[j] + 1, next[j - 1] + 1, prev[j - 1] + cost);
+    }
+    for (let j = 0; j <= n; j += 1) prev[j] = next[j];
+  }
+  return prev[n];
+}
+
+function typoBudget(word) {
+  if (word.length >= 8) return 2;
+  if (word.length >= 4) return 1;
+  return 0;
+}
+
+export const SENSES = [
+  {
+    label: "Growing older",
+    seeds: ["age", "aging", "ageing", "older", "elderly", "dementia", "carehome", "care"],
+  },
+  {
+    label: "Light and the city",
+    seeds: ["light", "lighting", "night", "shade", "street", "urban"],
+  },
+  {
+    label: "Moving through the city",
+    seeds: ["transport", "mobility", "taxi", "airport", "wayfinding", "travel", "interchange", "bus"],
+  },
+  {
+    label: "Work and the office",
+    seeds: ["workplace", "office", "worker", "desk", "homeworking", "knowledge"],
+  },
+  {
+    label: "Care and hospitals",
+    seeds: ["patient", "hospital", "ambulance", "surgery", "nurse", "safety", "ward"],
+  },
+];
+
+function documentText(report) {
+  return [
+    report.title,
+    report.title,
+    report.description,
+    report.findings,
+    report.outputs,
+    report.targetedUser,
+    report.author,
+    report.partner,
+    report.category,
+    report.projectType,
+    ...(report.methodsPrimary ?? []),
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+const indexCache = new WeakMap();
+
+export function buildIndex(reports) {
+  const cached = indexCache.get(reports);
+  if (cached) return cached;
+
+  const docs = reports.map((report, index) => {
+    const tokens = tokenize(documentText(report)).map(stem);
+    const tf = new Map();
+    for (const token of tokens) tf.set(token, (tf.get(token) ?? 0) + 1);
+    return { report, index, key: reportKey(report, index), tokens, tf };
+  });
+
+  const df = new Map();
+  for (const doc of docs) {
+    for (const token of doc.tf.keys()) df.set(token, (df.get(token) ?? 0) + 1);
+  }
+  const n = docs.length || 1;
+  const idf = new Map();
+  for (const [token, count] of df) idf.set(token, Math.log((n + 1) / (count + 1)) + 1);
+
+  const vectors = docs.map((doc) => {
+    const vector = new Map();
+    let norm = 0;
+    for (const [token, freq] of doc.tf) {
+      const weight = (1 + Math.log(freq)) * (idf.get(token) ?? 0);
+      vector.set(token, weight);
+      norm += weight * weight;
+    }
+    return { ...doc, vector, norm: Math.sqrt(norm) || 1 };
+  });
+
+  const dictionary = new Set();
+  for (const token of idf.keys()) {
+    if (token.length >= 4) dictionary.add(token);
+  }
+
+  const index = { vectors, idf, dictionary };
+  indexCache.set(reports, index);
+  return index;
+}
+
+function cosine(queryVector, doc) {
+  let dot = 0;
+  for (const [token, weight] of queryVector) {
+    const other = doc.vector.get(token);
+    if (other) dot += weight * other;
+  }
+  let qn = 0;
+  for (const weight of queryVector.values()) qn += weight * weight;
+  if (!dot) return 0;
+  return dot / ((Math.sqrt(qn) || 1) * doc.norm);
+}
+
+export function closestWord(token, dictionary) {
+  const stemmed = stem(token);
+  let best = null;
+  let bestDist = 99;
+  for (const word of dictionary) {
+    if (word[0] !== stemmed[0] && token[0] !== word[0]) continue;
+    const dist = Math.min(levenshtein(token, word), levenshtein(stemmed, word));
+    if (dist < bestDist) {
+      best = word;
+      bestDist = dist;
+    }
+    if (bestDist === 0) break;
+  }
+  return bestDist <= typoBudget(token) ? { word: best, distance: bestDist } : null;
+}
+
+export function correctTerms(terms, vocab, index) {
+  const dictionary = new Set(index?.dictionary ?? []);
+  for (const { label } of vocab.methods.values()) tokenize(label).forEach((item) => dictionary.add(stem(item)));
+  for (const { label } of vocab.categories.values()) tokenize(label).forEach((item) => dictionary.add(stem(item)));
+  for (const [phrase] of METHOD_SYNONYMS) tokenize(phrase).forEach((item) => dictionary.add(stem(item)));
+  for (const [phrase] of CATEGORY_SYNONYMS) tokenize(phrase).forEach((item) => dictionary.add(stem(item)));
+  for (const sense of SENSES) sense.seeds.forEach((seed) => dictionary.add(stem(seed)));
+
+  const corrections = [];
+  const expanded = [];
+  for (const term of terms) {
+    expanded.push(term);
+    if (dictionary.has(term) || dictionary.has(stem(term))) continue;
+    const hit = closestWord(term, dictionary);
+    if (hit && hit.word !== stem(term) && hit.word !== term) {
+      corrections.push({ from: term, to: hit.word });
+      expanded.push(hit.word);
+    }
+  }
+  return { corrections, expanded };
+}
+
+function makeQueryVector(terms, idf) {
+  const tf = new Map();
+  for (const term of terms) {
+    const token = stem(term);
+    tf.set(token, (tf.get(token) ?? 0) + 1);
+  }
+  const vector = new Map();
+  for (const [token, freq] of tf) {
+    vector.set(token, (1 + Math.log(freq)) * (idf.get(token) ?? 1.2));
+  }
+  return vector;
+}
+
+function sensesFor(terms) {
+  const bag = new Set(terms.map(stem));
+  const hits = [];
+  for (const sense of SENSES) {
+    const overlap = sense.seeds.filter((seed) => {
+      const stemmed = stem(seed);
+      if (bag.has(stemmed)) return true;
+      return [...bag].some((term) => levenshtein(term, stemmed) <= typoBudget(term));
+    });
+    if (overlap.length) hits.push({ ...sense, overlap });
+  }
+  return hits;
+}
+
+function titleFuzzy(report, terms) {
+  const titleTokens = tokenize(report.title);
+  let score = 0;
+  for (const term of terms) {
+    const stemmed = stem(term);
+    if (titleTokens.some((token) => token === term || stem(token) === stemmed)) {
+      score += 1;
+      continue;
+    }
+    if (titleTokens.some((token) => levenshtein(token, term) <= typoBudget(term))) {
+      score += 0.7;
+    }
+  }
+  return score;
+}
+
 function canonicalMethodLabel(label, vocab) {
   const lower = String(label).toLowerCase();
   const mapped = METHOD_SYNONYMS.find(([phrase]) => phrase === lower);
@@ -712,8 +915,9 @@ export function appliedChips(filters) {
   }));
 }
 
-export function search(reports, query, { manual, suppressed, vocab } = {}) {
+export function search(reports, query, { manual, suppressed, vocab, index } = {}) {
   const lexicon = vocab ?? buildVocab(reports);
+  const corpus = index ?? buildIndex(reports);
   const parsed = parseQuery(query, lexicon);
   const filters = mergeFilters(parsed, manual, suppressed);
   const chips = appliedChips(filters);
@@ -721,23 +925,61 @@ export function search(reports, query, { manual, suppressed, vocab } = {}) {
     (item) => !chips.some((chip) => chip.key === item.key),
   );
 
-  const hasConstraint =
-    chips.length > 0 || parsed.remainderTerms.length > 0;
+  const rawTerms = [
+    ...parsed.remainderTerms,
+    ...filters.methods.flatMap((label) => tokenize(label)),
+    ...filters.categories.flatMap((label) => tokenize(label)),
+    ...filters.projectTypes.flatMap((label) => tokenize(label)),
+    ...filters.targetedUsers.flatMap((label) => tokenize(label)),
+    ...filters.years.map(String),
+  ];
+  const { corrections, expanded } = correctTerms(rawTerms, lexicon, corpus);
+  const senses = sensesFor(expanded);
+  const senseTerms = senses.flatMap((sense) => sense.seeds);
+  const highlightTerms = [...new Set([...expanded, ...corrections.map((item) => item.to)])];
+  const vector = makeQueryVector([...expanded, ...senseTerms], corpus.idf);
 
-  const ranked = [];
-  reports.forEach((report, index) => {
-    if (!reportMatches(report, filters)) return;
-    const { score, hits } = scoreReport(report, parsed.remainderTerms);
-    if (parsed.remainderTerms.length && score <= 0) return;
-    ranked.push({
+  const idle = !String(query ?? "").trim() && chips.length === 0;
+  const ranked = corpus.vectors.map((doc) => {
+    const report = doc.report;
+    const { hits } = scoreReport(report, highlightTerms);
+    let score = cosine(vector, doc) * 6;
+    score += titleFuzzy(report, highlightTerms) * 2.4;
+    if (filters.methods.length) {
+      const have = methodsOf(report);
+      score += filters.methods.some((method) => have.includes(method.toLowerCase())) ? 1.8 : 0;
+    }
+    if (filters.categories.length) {
+      score += filters.categories.some(
+        (label) => (report.category ?? "").toLowerCase() === label.toLowerCase(),
+      )
+        ? 1.4
+        : 0;
+    }
+    if (filters.projectTypes.length) {
+      score += filters.projectTypes.some(
+        (label) => (report.projectType ?? "").toLowerCase() === label.toLowerCase(),
+      )
+        ? 1.1
+        : 0;
+    }
+    if (yearInFilters(report.year, filters) && (filters.years.length || filters.yearRanges.length)) {
+      score += 1.2;
+    }
+    if (filters.reportNos.includes(String(report.reportNo ?? ""))) score += 8;
+    if (filters.targetedUsers.length) {
+      const user = (report.targetedUser ?? "").toLowerCase();
+      if (filters.targetedUsers.some((label) => user.includes(label.toLowerCase()))) score += 1.6;
+    }
+    return {
       report,
-      index,
-      key: reportKey(report, index),
+      index: doc.index,
+      key: doc.key,
       score,
       hits,
-      snippet: snippetFor(report, parsed.remainderTerms, hits),
+      snippet: snippetFor(report, highlightTerms, hits),
       reasons: whyMatched(report, filters, hits),
-    });
+    };
   });
 
   ranked.sort(
@@ -747,18 +989,49 @@ export function search(reports, query, { manual, suppressed, vocab } = {}) {
       String(a.report.title).localeCompare(String(b.report.title)),
   );
 
+  const max = ranked[0]?.score ?? 0;
+  const hotCut = Math.max(0.22, max * 0.38);
+  const pops = idle ? [] : ranked.filter((item) => item.score >= hotCut).slice(0, 8);
+  const popKeys = new Set(pops.map((item) => item.key));
+  const nearby = idle
+    ? []
+    : ranked
+        .filter((item) => !popKeys.has(item.key) && item.score > 0.12)
+        .slice(0, 4);
+  const all = ranked.map((item) => ({
+    ...item,
+    glow: popKeys.has(item.key) ? "hot" : item.score > 0.12 ? "warm" : "quiet",
+  }));
+
+  const themes = [];
+  for (const sense of senses) {
+    themes.push({ kind: "sense", label: sense.label, value: sense.seeds[0] });
+  }
+  for (const chip of chips) {
+    themes.push({ kind: "heard", label: chip.label.replace(/^(Method|Category|Type|Year|Years|Report|User): /, ""), value: chip.value, key: chip.key });
+  }
+  for (const item of suggestions) {
+    themes.push({
+      kind: "maybe",
+      label: item.value,
+      value: item.value,
+      key: item.key,
+    });
+  }
+
   return {
     parsed,
     filters,
     chips,
     suggestions,
-    remainderTerms: parsed.remainderTerms,
-    results: hasConstraint ? ranked : ranked.slice().sort(
-      (a, b) =>
-        (b.report.year ?? 0) - (a.report.year ?? 0) ||
-        String(a.report.title).localeCompare(String(b.report.title)),
-    ),
-    facets: countFacets((hasConstraint ? ranked : reports).map((item) => item.report ?? item)),
-    idle: !hasConstraint,
+    corrections,
+    themes,
+    remainderTerms: highlightTerms,
+    highlightTerms,
+    results: idle ? ranked : pops,
+    pops,
+    nearby,
+    all,
+    idle,
   };
 }
