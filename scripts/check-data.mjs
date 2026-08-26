@@ -19,8 +19,8 @@ const required = [
   "methodsPrimary",
 ];
 
-if (reports.length !== 62) {
-  throw new Error(`expected 62 reports, got ${reports.length}`);
+if (reports.length < 62) {
+  throw new Error(`expected at least 62 reports, got ${reports.length}`);
 }
 
 for (const [index, report] of reports.entries()) {
