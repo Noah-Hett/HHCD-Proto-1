@@ -181,8 +181,13 @@ function reservationsForYear(year, x, edges, byId) {
     if (!a || !b) continue;
     const loYear = Math.min(a.year, b.year);
     const hiYear = Math.max(a.year, b.year);
-    if (year <= loYear || year >= hiYear) continue;
+    if (year < loYear || year > hiYear) continue;
     const y = yAtX(a, b, edge.curve, x);
+    if (year === loYear || year === hiYear) {
+      if (!edge.curve) continue;
+      const endpoint = year === a.year ? a : b;
+      if (Math.abs(y - endpoint.y) < NODE_RADIUS + 2) continue;
+    }
     bands.push({ lo: y - LINE_CLEARANCE - 2, hi: y + LINE_CLEARANCE + 2 });
   }
   bands.sort((left, right) => left.lo - right.lo);
