@@ -359,12 +359,16 @@ function MethodGlyph({ name }) {
   return (
     <svg
       className={`method-glyph is-${mark.ink}`}
-      width="18"
-      height="18"
+      width="20"
+      height="20"
       viewBox="-10 -10 20 20"
       aria-hidden="true"
     >
-      <path d={mark.d} fillRule={mark.rule ?? "nonzero"} />
+      <path
+        d={mark.d}
+        fillRule={mark.rule ?? "nonzero"}
+        strokeWidth={mark.ink === "stroke" ? 1.45 : undefined}
+      />
     </svg>
   );
 }

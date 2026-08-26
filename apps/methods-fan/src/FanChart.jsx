@@ -28,6 +28,7 @@ function applyMethodMarks(sel) {
       .attr("d", mark.d)
       .attr("transform", `scale(${(d.r * 0.78) / 10})`)
       .attr("fill-rule", mark.rule ?? "nonzero")
+      .attr("stroke-width", mark.ink === "stroke" ? 1.45 : null)
       .attr("class", `method-mark is-${mark.ink}`);
   });
 }

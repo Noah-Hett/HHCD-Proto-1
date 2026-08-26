@@ -33,7 +33,11 @@ function speechBubble(ox, oy, w, h, flip = 1) {
 const ICONS = {
   "Individual Interviews": {
     ink: "fill",
-    d: speechBubble(0.2, -0.8, 15.2, 10.4, 1),
+    rule: "evenodd",
+    d:
+      speechBubble(0.15, -0.9, 15.4, 10.6, 1) +
+      roundedRect(-3.6, -3.4, 1.35, 3.6, 0.4) +
+      roundedRect(0.4, -3.4, 1.35, 3.6, 0.4),
   },
   Observation: {
     ink: "fill",
@@ -53,25 +57,18 @@ const ICONS = {
   },
   Workshops: {
     ink: "fill",
-    rule: "evenodd",
     d:
-      roundedRect(-8.8, -9.2, 17.6, 11.6, 1.2) +
-      roundedRect(-6.7, -7.2, 13.4, 7.6, 0.45) +
-      bust(0, 5.35, 0.82),
+      roundedRect(-9.2, 2.4, 18.4, 4.6, 1.6) +
+      circ(-4.9, -3.1, 2.2) +
+      circ(0, -5.3, 2.45) +
+      circ(4.9, -3.1, 2.2),
   },
   Scenarios: {
     ink: "fill",
-    rule: "evenodd",
     d:
-      roundedRect(-9.4, -6.2, 5.5, 12.4, 0.7) +
-      roundedRect(-2.75, -6.2, 5.5, 12.4, 0.7) +
-      roundedRect(3.9, -6.2, 5.5, 12.4, 0.7) +
-      roundedRect(-8.15, -4.4, 3, 3.2, 0.35) +
-      roundedRect(-1.5, -4.4, 3, 3.2, 0.35) +
-      roundedRect(5.15, -4.4, 3, 3.2, 0.35) +
-      roundedRect(-8.15, 0.4, 3, 4.2, 0.35) +
-      roundedRect(-1.5, 0.4, 3, 4.2, 0.35) +
-      roundedRect(5.15, 0.4, 3, 4.2, 0.35),
+      roundedRect(-9.5, -7.2, 5.4, 14.4, 0.85) +
+      roundedRect(-2.7, -7.2, 5.4, 14.4, 0.85) +
+      roundedRect(4.1, -7.2, 5.4, 14.4, 0.85),
   },
   Mapping: {
     ink: "fill",
@@ -85,15 +82,18 @@ const ICONS = {
     d: bust(-4.6, 0.6, 0.78) + bust(4.6, 0.6, 0.78) + bust(0, -0.4, 0.95),
   },
   "Mockups and Rapid Prototyping": {
-    ink: "fill",
-    rule: "evenodd",
+    ink: "stroke",
     d:
-      `M0,-8.8l8.2,4.6v8.4l-8.2,4.6l-8.2,-4.6v-8.4z` +
-      `M0,-6.2l-6.1,3.4v5.6l6.1,3.4l6.1,-3.4v-5.6z`,
+      `M0,-7.6L7.8,-3.2V5L0,9.4L-7.8,5V-3.2Z` +
+      `M-7.8,-3.2L0,1.2L7.8,-3.2` +
+      `M0,1.2V9.4`,
   },
   "Co-Design": {
     ink: "fill",
-    d: bust(-3.5, 0.2, 0.9) + bust(3.5, 0.2, 0.9),
+    d:
+      bust(-4.1, 0.35, 0.88) +
+      bust(4.1, 0.35, 0.88) +
+      `M-1.15,-8.6h2.3v2.3h2.3v2.3h-2.3v2.3h-2.3v-2.3h-2.3v-2.3h2.3z`,
   },
   Personas: {
     ink: "fill",
@@ -110,7 +110,9 @@ const ICONS = {
   },
   "Critical User Forums": {
     ink: "fill",
-    d: speechBubble(-1.6, -2.6, 12.4, 8.2, 1) + speechBubble(2.8, 2.8, 11.2, 7.4, -1),
+    d:
+      speechBubble(-3.1, -3.7, 12.6, 8, 1) +
+      speechBubble(3.3, 3.9, 12.2, 7.6, -1),
   },
 };
 
