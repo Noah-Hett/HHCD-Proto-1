@@ -3,7 +3,7 @@ export const Y_BANDS = [
   { id: 1, label: "Design guidelines / Policy guidelines" },
   { id: 2, label: "Business model / Design concepts" },
   { id: 3, label: "Physical prototypes" },
-  { id: 4, label: "Products" },
+  { id: 4, label: "Products / Media campaign" },
 ];
 
 const PROJECT_TYPE_TO_BAND = {
@@ -38,9 +38,7 @@ export const COLOR_GROUPS = [
   },
 ];
 
-function radius(count) {
-  return Math.min(14, 5 + 3 * (count - 1));
-}
+const DOT_R = 6;
 
 function bandForProjectType(projectType) {
   if (!projectType) return undefined;
@@ -81,7 +79,9 @@ function assignCellOffsets(dots) {
 
   for (const group of cells.values()) {
     group.sort(
-      (a, b) => COLOR_ORDER[a.colorGroupId] - COLOR_ORDER[b.colorGroupId],
+      (a, b) =>
+        COLOR_ORDER[a.colorGroupId] - COLOR_ORDER[b.colorGroupId] ||
+        String(a.key).localeCompare(String(b.key), undefined, { numeric: true }),
     );
     const ys = centerYs(group);
     group.forEach((dot, index) => {
@@ -105,36 +105,29 @@ export function mapReports(reports) {
     mapped.push({ report, yBand, colorGroup });
   }
 
-  const clusters = new Map();
-  for (const item of mapped) {
-    const key = `${item.report.year}|${item.yBand}|${item.colorGroup.id}`;
-    let cluster = clusters.get(key);
-    if (!cluster) {
-      cluster = {
-        key,
-        year: item.report.year,
-        yBand: item.yBand,
-        color: item.colorGroup.color,
-        colorGroupId: item.colorGroup.id,
-        colorLabel: item.colorGroup.label,
-        reports: [],
-      };
-      clusters.set(key, cluster);
-    }
-    cluster.reports.push(item.report);
-  }
-
-  const dots = [...clusters.values()].map((cluster) => ({
-    ...cluster,
-    cellKey: `${cluster.year}|${cluster.yBand}`,
-    r: radius(cluster.reports.length),
+  const dots = mapped.map((item) => ({
+    key: item.report.reportNo,
+    year: item.report.year,
+    yBand: item.yBand,
+    color: item.colorGroup.color,
+    colorGroupId: item.colorGroup.id,
+    colorLabel: item.colorGroup.label,
+    reports: [item.report],
+    cellKey: `${item.report.year}|${item.yBand}`,
+    r: DOT_R,
     dx: 0,
     dy: 0,
   }));
 
   assignCellOffsets(dots);
 
-  dots.sort((a, b) => b.r - a.r || a.year - b.year || a.yBand - b.yBand);
+  dots.sort(
+    (a, b) =>
+      a.year - b.year ||
+      a.yBand - b.yBand ||
+      COLOR_ORDER[a.colorGroupId] - COLOR_ORDER[b.colorGroupId] ||
+      String(a.key).localeCompare(String(b.key), undefined, { numeric: true }),
+  );
 
   const years = mapped.map((item) => item.report.year);
 
@@ -148,11 +141,8 @@ export function mapReports(reports) {
 }
 
 export function clusterAriaLabel(cluster) {
-  const count = cluster.reports.length;
-  const categories = [...new Set(cluster.reports.map((report) => report.category))];
-  const categoryLabel =
-    categories.length === 1 ? categories[0] : cluster.colorLabel;
+  const report = cluster.reports[0];
+  const title = report?.title?.trim() || "Untitled report";
   const bandLabel = Y_BANDS[cluster.yBand]?.label ?? "Unknown type";
-  const noun = count === 1 ? "report" : "reports";
-  return `${count} ${categoryLabel} ${noun}, ${cluster.year}, ${bandLabel}`;
+  return `${title}, ${cluster.year}, ${bandLabel}`;
 }
