@@ -48,9 +48,9 @@ export default function ScatterPlot({
       <desc id="scatter-desc">
         Scatter plot of research associate reports. The horizontal axis is year.
         The vertical axis is project type, from conceptual framework at the bottom
-        to products / media campaign at the top. Dot colour is research theme; size is how many
-        reports of that theme share a year and type. Themes at the same place
-        stack vertically and overlap. Activate a dot to read the reports.
+        to products / media campaign at the top. Each report is a same-size dot,
+        coloured by research theme. Reports that share a year and type stack
+        vertically. Activate a dot to read the report.
       </desc>
 
       {Y_BANDS.map((band) => {
