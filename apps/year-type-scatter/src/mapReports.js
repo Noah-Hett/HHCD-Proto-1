@@ -54,12 +54,12 @@ const COLOR_ORDER = Object.fromEntries(
   COLOR_GROUPS.map((group, index) => [group.id, index]),
 );
 
-function ringOffsets(n) {
+function ringOffsets(n, radius = DOT_GAP) {
   const start = -Math.PI / 2;
   const step = (2 * Math.PI) / n;
   return Array.from({ length: n }, (_, i) => {
     const angle = start + i * step;
-    return { dx: DOT_R * Math.cos(angle), dy: DOT_R * Math.sin(angle) };
+    return { dx: radius * Math.cos(angle), dy: radius * Math.sin(angle) };
   });
 }
 
@@ -93,7 +93,18 @@ function offsetsForCount(n) {
     ];
   }
 
-  return ringOffsets(n);
+  if (n === 5) {
+    const h = DOT_GAP / Math.SQRT2;
+    return [
+      { dx: 0, dy: 0 },
+      { dx: -h, dy: -h },
+      { dx: h, dy: -h },
+      { dx: -h, dy: h },
+      { dx: h, dy: h },
+    ];
+  }
+
+  return [{ dx: 0, dy: 0 }, ...ringOffsets(n - 1)];
 }
 
 function assignCellOffsets(dots) {
