@@ -2,14 +2,10 @@ import { Y_BANDS, clusterAriaLabel } from "./mapReports.js";
 
 const VIEW_W = 900;
 const VIEW_H = 520;
-const MARGIN = { top: 36, right: 40, bottom: 52, left: 168 };
+const MARGIN = { top: 24, right: 28, bottom: 52, left: 168 };
 
 const innerWidth = VIEW_W - MARGIN.left - MARGIN.right;
 const innerHeight = VIEW_H - MARGIN.top - MARGIN.bottom;
-const originX = MARGIN.left;
-const originY = VIEW_H - MARGIN.bottom;
-const arrowTop = 10;
-const arrowRight = VIEW_W - 10;
 
 function xForYear(year, yearMin, yearMax) {
   const span = Math.max(yearMax - yearMin, 1);
@@ -46,7 +42,6 @@ export default function ScatterPlot({
       className="scatter"
       viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
       preserveAspectRatio="xMidYMid meet"
-      overflow="visible"
       aria-labelledby="scatter-title scatter-desc"
     >
       <title id="scatter-title">HHCD reports by year and project type</title>
@@ -57,38 +52,6 @@ export default function ScatterPlot({
         coloured by research theme. Reports that share a year and type pack into
         a small cluster. Activate a dot to read the report.
       </desc>
-
-      <defs>
-        <marker
-          id="axis-arrow"
-          viewBox="0 0 10 10"
-          refX="8"
-          refY="5"
-          markerWidth="8"
-          markerHeight="8"
-          orient="auto"
-          markerUnits="userSpaceOnUse"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#111" />
-        </marker>
-      </defs>
-
-      <line
-        className="axis-line"
-        x1={originX}
-        y1={originY}
-        x2={originX}
-        y2={arrowTop}
-        markerEnd="url(#axis-arrow)"
-      />
-      <line
-        className="axis-line"
-        x1={originX}
-        y1={originY}
-        x2={arrowRight}
-        y2={originY}
-        markerEnd="url(#axis-arrow)"
-      />
 
       {Y_BANDS.map((band) => {
         const y = yForBand(band.id);

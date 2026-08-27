@@ -188,7 +188,6 @@
   height: 100%;
   display: block;
   background: #fff;
-  overflow: visible;
 }
 
 .y-label {
@@ -201,14 +200,6 @@
   line-height: 1.25;
   color: #111;
   font-family: var(--font);
-}
-
-.axis-line {
-  fill: none;
-  stroke: #111;
-  stroke-width: 1.5;
-  stroke-linecap: square;
-  pointer-events: none;
 }
 
 .x-end {
