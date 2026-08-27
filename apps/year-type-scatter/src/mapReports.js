@@ -39,6 +39,7 @@ export const COLOR_GROUPS = [
 ];
 
 const DOT_R = 6;
+const DOT_GAP = 2 * DOT_R;
 
 function bandForProjectType(projectType) {
   if (!projectType) return undefined;
@@ -53,20 +54,46 @@ const COLOR_ORDER = Object.fromEntries(
   COLOR_GROUPS.map((group, index) => [group.id, index]),
 );
 
-function neighborGap(left, right) {
-  const overlapped = 0.55 * (left.r + right.r);
-  const unobscured = Math.abs(left.r - right.r) + 3;
-  return Math.max(overlapped, unobscured);
+function ringOffsets(n) {
+  const start = -Math.PI / 2;
+  const step = (2 * Math.PI) / n;
+  return Array.from({ length: n }, (_, i) => {
+    const angle = start + i * step;
+    return { dx: DOT_R * Math.cos(angle), dy: DOT_R * Math.sin(angle) };
+  });
 }
 
-function centerYs(group) {
-  if (group.length === 1) return [0];
-  const ys = [0];
-  for (let i = 0; i < group.length - 1; i += 1) {
-    ys.push(ys[i] + neighborGap(group[i], group[i + 1]));
+function offsetsForCount(n) {
+  if (n <= 1) return [{ dx: 0, dy: 0 }];
+
+  if (n === 2) {
+    const h = DOT_GAP / 2;
+    return [
+      { dx: -h, dy: 0 },
+      { dx: h, dy: 0 },
+    ];
   }
-  const mid = (ys[0] + ys[ys.length - 1]) / 2;
-  return ys.map((y) => y - mid);
+
+  if (n === 3) {
+    const height = (Math.sqrt(3) / 2) * DOT_GAP;
+    return [
+      { dx: 0, dy: -((2 / 3) * height) },
+      { dx: -DOT_GAP / 2, dy: (1 / 3) * height },
+      { dx: DOT_GAP / 2, dy: (1 / 3) * height },
+    ];
+  }
+
+  if (n === 4) {
+    const h = DOT_GAP / 2;
+    return [
+      { dx: -h, dy: -h },
+      { dx: h, dy: -h },
+      { dx: -h, dy: h },
+      { dx: h, dy: h },
+    ];
+  }
+
+  return ringOffsets(n);
 }
 
 function assignCellOffsets(dots) {
@@ -83,10 +110,10 @@ function assignCellOffsets(dots) {
         COLOR_ORDER[a.colorGroupId] - COLOR_ORDER[b.colorGroupId] ||
         String(a.key).localeCompare(String(b.key), undefined, { numeric: true }),
     );
-    const ys = centerYs(group);
+    const offsets = offsetsForCount(group.length);
     group.forEach((dot, index) => {
-      dot.dx = 0;
-      dot.dy = ys[index];
+      dot.dx = offsets[index].dx;
+      dot.dy = offsets[index].dy;
     });
   }
 }
