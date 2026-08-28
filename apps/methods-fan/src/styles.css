@@ -1,0 +1,677 @@
+@import "@hhcd/theme/tokens.css";
+
+.shell-main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.page {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  background: var(--bg);
+}
+
+.stage {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.fan-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.fan {
+  display: block;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+  cursor: default;
+}
+
+.fan-caption {
+  position: absolute;
+  left: 16px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  pointer-events: none;
+}
+
+.fan-wedge {
+  fill-opacity: 0.055;
+  stroke: none;
+  cursor: pointer;
+}
+
+.fan.is-zoomed .fan-wedge {
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.fan.is-zoomed .fan-wedge.is-current {
+  fill-opacity: 0.1;
+}
+
+.fan.is-zoomed .fan-band:not(.is-current) {
+  fill-opacity: 0.62;
+}
+
+.fan.is-zoomed .fan-node.is-category:not(.is-current) {
+  opacity: 0.62;
+}
+
+.fan.is-zoomed.is-focusing .fan-node.is-category:not(.is-current) {
+  opacity: 0.55;
+}
+
+.fan.is-zoomed.is-focusing .fan-band:not(.is-current) {
+  opacity: 0.72;
+}
+
+.fan-pop {
+  fill-opacity: 0.16;
+  stroke: none;
+  pointer-events: none;
+}
+
+.fan-band {
+  fill-opacity: 1;
+  stroke: #111;
+  stroke-width: 0.8;
+  pointer-events: none;
+}
+
+.guide {
+  fill: none;
+  stroke: var(--text);
+  stroke-opacity: 0.28;
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+.fan-link {
+  fill: none;
+  stroke-width: 1.4;
+  stroke-opacity: 0.95;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+  display: none;
+}
+
+.fan-ribbon {
+  display: inline;
+  stroke-opacity: 0.4;
+}
+
+.fan.is-zoomed .fan-ribbon {
+  display: none;
+}
+
+.fan.is-zoomed .fan-link {
+  display: inline;
+  stroke-opacity: 0.2;
+}
+
+.fan-node {
+  cursor: pointer;
+}
+
+.fan-node:focus {
+  outline: none;
+}
+
+.fan-node:focus-visible .dot,
+.fan-wedge:focus-visible {
+  outline: 3px solid #111;
+  outline-offset: 3px;
+}
+
+.fan-wedge:focus {
+  outline: none;
+}
+
+.fan-node .hit {
+  fill: transparent;
+}
+
+.fan-node .dot {
+  stroke: #111;
+  stroke-width: 1.4;
+}
+
+.fan-node.is-method .dot {
+  fill: #171717;
+  stroke: #111;
+  stroke-width: 1.4;
+}
+
+.fan-node:not(.is-method) .method-mark {
+  display: none;
+}
+
+.method-mark.is-fill {
+  fill: #f4efe6;
+  stroke: none;
+}
+
+.method-mark.is-stroke {
+  fill: none;
+  stroke: #f4efe6;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.fan-node.is-category .dot {
+  stroke-width: 1.6;
+}
+
+.cat-count {
+  font-size: 12px;
+  font-weight: 700;
+  fill: #fff;
+  stroke: #111;
+  stroke-width: 3px;
+  paint-order: stroke fill;
+  pointer-events: none;
+}
+
+.fan-node:not(.is-category) .cat-count {
+  display: none;
+}
+
+.method-label,
+.cat-label,
+.outer-label {
+  font-size: 11px;
+  fill: var(--text);
+  pointer-events: none;
+}
+
+.method-label {
+  font-size: 12px;
+  font-weight: 600;
+  fill: #111;
+  stroke: var(--bg);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+  paint-order: stroke fill;
+}
+
+.fan.is-focusing .method-label {
+  opacity: 0.15;
+}
+
+.fan.is-focusing .method-label.is-hot {
+  opacity: 1;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.cat-label,
+.outer-label {
+  font-size: 12px;
+  font-weight: 600;
+  fill: var(--text);
+}
+
+.fan.is-zoomed .outer-label.is-category {
+  display: none;
+}
+
+.fan.is-zoomed .guide-pop {
+  stroke-opacity: 0.18;
+}
+
+.fan.is-zoomed .outer-label.is-project {
+  font-size: 12px;
+  font-weight: 600;
+  fill: #111;
+  stroke: var(--bg);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+  paint-order: stroke fill;
+  opacity: 0;
+}
+
+.fan.is-zoomed.is-focusing .outer-label.is-project.is-hot {
+  opacity: 1;
+}
+
+.fan.is-focusing .fan-ribbon {
+  stroke-opacity: 0.12;
+}
+
+.fan.is-focusing .fan-ribbon.is-hot {
+  stroke-opacity: 0.95;
+}
+
+.fan.is-zoomed.is-focusing .fan-link {
+  stroke-opacity: 0.08;
+}
+
+.fan.is-zoomed.is-focusing .fan-link.is-hot {
+  stroke-opacity: 0.95;
+  stroke-width: 2;
+}
+
+.fan.is-focusing .fan-node,
+.fan.is-focusing .fan-band,
+.fan.is-focusing .fan-wedge {
+  opacity: 0.28;
+}
+
+.fan.is-focusing .fan-pop {
+  opacity: 1;
+}
+
+.fan.is-focusing .method-label,
+.fan.is-focusing .cat-label,
+.fan.is-focusing .outer-label.is-hot,
+.fan.is-focusing .outer-label.is-current,
+.fan.is-focusing .fan-node.is-hot,
+.fan.is-focusing .fan-node.is-current,
+.fan.is-focusing .fan-band.is-hot,
+.fan.is-focusing .fan-band.is-current,
+.fan.is-focusing .fan-wedge.is-hot,
+.fan.is-focusing .fan-wedge.is-current,
+.fan.is-focusing .fan-pop.is-hot,
+.fan.is-focusing .fan-pop.is-current {
+  opacity: 1;
+}
+
+.fan.is-focusing .fan-wedge.is-hot {
+  fill-opacity: 0.16;
+}
+
+.fan.is-focusing .fan-node.is-hot .dot {
+  stroke: #111;
+  stroke-width: 2;
+}
+
+.zoom-back {
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  z-index: 2;
+  min-height: 32px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.zoom-back:hover {
+  background: var(--hover);
+}
+
+.panel {
+  box-sizing: border-box;
+  width: 300px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  overflow: auto;
+  padding: 14px 16px 24px;
+}
+
+.kicker {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.link-toggle {
+  display: block;
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  min-height: 44px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  font-size: 13px;
+}
+
+.link-toggle[aria-pressed="true"] {
+  background: var(--hover);
+  border-color: var(--text);
+}
+
+.link-toggle:focus-visible,
+.legend button:focus-visible,
+.method-key button:focus-visible,
+.hits button:focus-visible,
+.chips button:focus-visible,
+.web a:focus-visible,
+.zoom-back:focus-visible {
+  outline: 3px solid #111;
+  outline-offset: 2px;
+}
+
+.legend {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+}
+
+.key-label {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.method-key {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 0 16px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.legend button,
+.method-key button,
+.hits button,
+.chips button {
+  font: inherit;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+}
+
+.legend button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 4px;
+  min-height: 32px;
+  font-size: 13px;
+}
+
+.legend button:hover,
+.legend button.active,
+.method-key button:hover,
+.method-key button.active {
+  background: var(--hover);
+}
+
+.method-key button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px 5px 6px;
+  min-height: 32px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-size: 12px;
+}
+
+.method-glyph.is-fill path {
+  fill: #111;
+  stroke: none;
+}
+
+.method-glyph.is-stroke path {
+  fill: none;
+  stroke: #111;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.hits button:hover,
+.chips button:hover {
+  background: var(--hover);
+}
+
+.legend i,
+.hits i,
+.pill i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid #111;
+  box-sizing: border-box;
+}
+
+.dash-swatch {
+  flex-shrink: 0;
+  display: block;
+}
+
+.legend span {
+  margin-left: auto;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.detail h1 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.detail h2 {
+  margin: 14px 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.lede,
+.body {
+  margin: 0 0 10px;
+  font-size: 13px;
+}
+
+.body {
+  color: var(--text);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.hits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hits button {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px 4px;
+  min-height: 32px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.hits strong {
+  display: block;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.hits em {
+  display: block;
+  margin-top: 2px;
+  font-style: normal;
+  color: var(--text);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+.chips button {
+  border: 1px solid var(--text);
+  background: var(--bg);
+  padding: 6px 10px;
+  min-height: 32px;
+  font-size: 13px;
+}
+
+.web {
+  margin: 12px 0 0;
+  font-size: 13px;
+}
+
+.web a {
+  text-decoration: underline;
+}
+
+.web a:hover {
+  text-decoration: underline;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fan-link,
+  .fan-ribbon,
+  .fan-node,
+  .fan-band,
+  .fan-wedge,
+  .fan-pop {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .fan-link,
+  .fan-ribbon,
+  .guide {
+    stroke: CanvasText;
+  }
+
+  .fan-node .dot,
+  .fan-band {
+    fill: CanvasText;
+    stroke: Canvas;
+  }
+
+  .fan-node.is-method .dot {
+    fill: CanvasText;
+    stroke: Canvas;
+  }
+
+  .method-mark.is-fill {
+    fill: Canvas;
+  }
+
+  .method-glyph.is-fill path {
+    fill: CanvasText;
+  }
+
+  .fan-pop {
+    fill: GrayText;
+  }
+
+  .method-mark.is-stroke {
+    stroke: Canvas;
+  }
+
+  .method-glyph.is-stroke path {
+    stroke: CanvasText;
+  }
+
+  .method-label {
+    fill: CanvasText;
+    stroke: Canvas;
+  }
+
+  .cat-count {
+    fill: Canvas;
+  }
+
+  .fan-wedge {
+    fill: GrayText;
+  }
+
+  .zoom-back {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+}
+
+@media (max-width: 840px) {
+  .page {
+    flex-direction: column;
+  }
+
+  .stage {
+    min-height: 58vh;
+  }
+
+  .panel {
+    width: 100%;
+    max-height: 42vh;
+    border-left: 0;
+    border-top: 1px solid var(--border);
+  }
+}
