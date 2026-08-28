@@ -1,6 +1,6 @@
 # HHCD visualisation workspace
 
-A **pnpm workspace** of independent Vite + React pages over the Helen Hamlyn Centre for Design graduate/associate report catalogue (62 reports). One Vercel project hosts the hub plus every visualisation. Pull requests get a preview URL automatically.
+A **pnpm workspace** of independent Vite + React pages over the Helen Hamlyn Centre for Design graduate/associate report catalogue (64 reports). One Vercel project hosts the hub plus every visualisation. Pull requests get a preview URL automatically.
 
 ## Shape
 
@@ -68,13 +68,13 @@ Production is `https://<project>.vercel.app/` plus `/<app-id>/`. Each pull reque
 | `pnpm new-app <id>` | Scaffold a new app from `_starter` |
 | `pnpm --filter @hhcd/<id> dev` | Local one app |
 | `pnpm --filter @hhcd/<id> add <pkg>` | Add a library to one app only |
-| `pnpm test` | Check the JSON catalogue still has 62 reports |
+| `pnpm test` | Check the JSON catalogue and app unit tests |
 | `pnpm build` | Build every published app into `dist/` |
 | `python3 scripts/csv-to-json.py` | Rebuild JSON after CSV edits |
 
 ## Data
 
-Import from `@hhcd/data`, not the CSV in the browser. The CSV has **two columns both named `Methods [options]`**; JSON uses `methodsPrimary` and `methodsSecondary`. Categories include both `Mobility and Transport` and `Transport`.
+Import from `@hhcd/data`, not the CSV in the browser. The CSV has one `Methods [options]` column; JSON uses `methodsPrimary`. Categories include both `Mobility and Transport` and `Transport`.
 
 ## Working together
 

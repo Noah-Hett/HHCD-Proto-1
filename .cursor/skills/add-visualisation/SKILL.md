@@ -7,7 +7,7 @@ description: Use when the user wants a new chart, page, visualisation, Three.js,
 
 Treat the request as **create a new published page**. Do not modify gallery, overview, theme tokens, or other apps unless the user explicitly says so.
 
-Each page is a **full Vite + React app** in `apps/<id>/` (own `package.json`, `index.html`, `src/`, `vite.config.js`). Shared: `@hhcd/data` (62 reports). Optional: `@hhcd/theme` tokens and `@hhcd/shell` chrome (`<Shell fill>` for full-bleed WebGL). No React Router, no iframe, no shared runtime. Add libs to that app only. Three.js on one page and D3 on another is expected. Static hosting only; keep `base: "./"`. Gallery is the hub. `_starter` stays unpublished.
+Each page is a **full Vite + React app** in `apps/<id>/` (own `package.json`, `index.html`, `src/`, `vite.config.js`). Shared: `@hhcd/data` (64 reports). Optional: `@hhcd/theme` tokens and `@hhcd/shell` chrome (`<Shell fill>` for full-bleed WebGL). No React Router, no iframe, no shared runtime. Add libs to that app only. Three.js on one page and D3 on another is expected. Static hosting only; keep `base: "./"`. Gallery is the hub. `_starter` stays unpublished.
 
 ## Steps
 
@@ -22,6 +22,6 @@ Each page is a **full Vite + React app** in `apps/<id>/` (own `package.json`, `i
 
 ## Dataset gotchas
 
-- 62 reports via `@hhcd/data`. CSV is `data/hhcd-reports.csv`; regenerate JSON with `python3 scripts/csv-to-json.py`.
-- Duplicate CSV columns named `Methods [options]` → JSON `methodsPrimary` / `methodsSecondary`. Do not use `csv.DictReader` on the raw CSV.
+- 64 reports via `@hhcd/data`. CSV is `data/hhcd-reports.csv`; regenerate JSON with `python3 scripts/csv-to-json.py`.
+- The CSV has one `Methods [options]` column; JSON uses `methodsPrimary`. Do not use `csv.DictReader` on the raw CSV.
 - Categories include both `Mobility and Transport` and `Transport`.

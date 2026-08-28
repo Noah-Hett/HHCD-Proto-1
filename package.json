@@ -13,7 +13,7 @@
     "new-app": "node scripts/new-app.mjs",
     "build": "node scripts/build-site.mjs",
     "preview": "node scripts/build-site.mjs && python3 -m http.server 4173 --directory dist",
-    "test": "node scripts/check-data.mjs"
+    "test": "node scripts/check-data.mjs && pnpm --filter @hhcd/report-search test && pnpm --filter @hhcd/report-timeline test"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",

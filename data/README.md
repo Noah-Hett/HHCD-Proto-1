@@ -1,6 +1,6 @@
 # Shared HHCD report data
 
-`hhcd-reports.csv` is the source catalogue (~62 graduate/associate reports).
+`hhcd-reports.csv` is the source catalogue (64 graduate/associate reports).
 
 `packages/data/src/reports.json` is the version React apps import. If you edit the CSV, regenerate JSON:
 
@@ -10,5 +10,5 @@ python3 scripts/csv-to-json.py
 
 Column notes:
 
-- Two CSV columns are both named `Methods [options]`. They become `methodsPrimary` and `methodsSecondary` in JSON.
+- The CSV has one `Methods [options]` column; JSON uses `methodsPrimary`.
 - Category values include both `Mobility and Transport` and `Transport`.
