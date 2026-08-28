@@ -186,6 +186,44 @@ export default function App() {
       ? "Scroll to file the reports into magazine folders. Theme, Year, and Project type regroup the shelves after that."
       : "Use Theme, Year, or Project type to regroup. Tap a folder to bring it closer; tap a risen report to open it. The list has every report.";
 
+  const panel = (
+    <aside
+      className="panel"
+      id="archive-panel"
+      hidden={!listOpen}
+      aria-label="Folder list and report details"
+    >
+      <div className="panel-scroll">
+        {selectedReport ? (
+          <ReportDetail
+            report={selectedReport}
+            headingRef={detailHeadingRef}
+            onBack={closeDetail}
+            folderLabel={selectedFolder?.label}
+          />
+        ) : (
+          <FolderIndex
+            groupingMeta={groupingMeta}
+            folders={folders}
+            selectedFolderId={selectedFolderId}
+            onSelectFolder={selectFolder}
+            onSelectReport={selectReport}
+          />
+        )}
+      </div>
+      <div className="panel-footer">
+        <label className="toggle">
+          <input
+            type="checkbox"
+            checked={reduceMotion}
+            onChange={(event) => setReduceMotion(event.currentTarget.checked)}
+          />
+          Reduce motion
+        </label>
+      </div>
+    </aside>
+  );
+
   return (
     <Shell fill title="Project folders">
       <div
@@ -211,121 +249,84 @@ export default function App() {
           {announcement}
         </div>
 
-        <div className="stage">
-          <div className="stage-visual">
-            <section className="intro" aria-labelledby="archive-intro-title">
-              <h1 id="archive-intro-title" className="intro-title">
-                62 reports, one archive
-              </h1>
-              <p className="intro-lead">
-                {organize < 0.85 && !reduceMotion
-                  ? "Helen Hamlyn Centre for Design, 2000–2017. These documents are not yet divided into folders — this side view is the whole archive. Scroll to file them by theme, year, or project type."
-                  : "Helen Hamlyn Centre for Design, 2000–2017. The reports are filed in magazine folders. Theme, year, and project type regroup the shelves."}
-              </p>
-            </section>
-            <div className="scene-frame">
-              {webglFailed ? (
-                <div className="webgl-fallback" role="status">
-                  <p>
-                    The 3D archive could not start in this browser. The folder
-                    list on this page has the same reports and grouping.
-                  </p>
-                </div>
-              ) : (
-                <ArchiveScene
-                  grouping={grouping}
-                  organize={reduceMotion ? 1 : organize}
-                  reduceMotion={reduceMotion}
-                  selectedFolderId={selectedFolderId}
-                  selectedReportNo={selectedReportNo}
-                  onSelectFolder={(id) => selectFolder(id)}
-                  onSelectReport={(reportNo) => selectReport(reportNo)}
-                  onWebglError={() => setWebglFailed(true)}
-                />
-              )}
-              <p className="scene-hint">{hint}</p>
-            </div>
-            <header className="archive-bar">
-              <fieldset className="grouping-tabs">
-                <legend className="sr-only">Regroup the archive</legend>
-                {GROUPINGS.map((item) => (
-                  <label
-                    key={item.id}
-                    className={grouping === item.id ? "is-active" : ""}
-                  >
-                    <input
-                      type="radio"
-                      name="archive-grouping"
-                      value={item.id}
-                      checked={grouping === item.id}
-                      onChange={() => goToGrouping(item.id)}
-                    />
-                    {item.label}
-                  </label>
-                ))}
-              </fieldset>
-              <div className="archive-bar-end">
-                <p className="scene-status">
-                  {reports.length} reports · {folders.length} folders
+        <div className="file-block">
+          <div className="stage">
+            <div className="stage-visual">
+              <section className="intro" aria-labelledby="archive-intro-title">
+                <h1 id="archive-intro-title" className="intro-title">
+                  62 reports, one archive
+                </h1>
+                <p className="intro-lead">
+                  {organize < 0.85 && !reduceMotion
+                    ? "Helen Hamlyn Centre for Design, 2000–2017. These documents are not yet divided into folders — this side view is the whole archive. Scroll to file them by theme, year, or project type."
+                    : "Helen Hamlyn Centre for Design, 2000–2017. The reports are filed in magazine folders. Theme, year, and project type regroup the shelves."}
                 </p>
-                <button
-                  type="button"
-                  className="list-toggle"
-                  ref={listButtonRef}
-                  aria-expanded={listOpen}
-                  aria-controls="archive-panel"
-                  onClick={toggleList}
-                >
-                  {listOpen ? "Hide list" : "Show list"}
-                </button>
+              </section>
+              <div className="scene-frame">
+                {webglFailed ? (
+                  <div className="webgl-fallback" role="status">
+                    <p>
+                      The 3D archive could not start in this browser. The folder
+                      list on this page has the same reports and grouping.
+                    </p>
+                  </div>
+                ) : (
+                  <ArchiveScene
+                    grouping={grouping}
+                    organize={reduceMotion ? 1 : organize}
+                    reduceMotion={reduceMotion}
+                    selectedFolderId={selectedFolderId}
+                    selectedReportNo={selectedReportNo}
+                    onSelectFolder={(id) => selectFolder(id)}
+                    onSelectReport={(reportNo) => selectReport(reportNo)}
+                    onWebglError={() => setWebglFailed(true)}
+                  />
+                )}
+                <p className="scene-hint">{hint}</p>
               </div>
-            </header>
+              <header className="archive-bar">
+                <fieldset className="grouping-tabs">
+                  <legend className="sr-only">Regroup the archive</legend>
+                  {GROUPINGS.map((item) => (
+                    <label
+                      key={item.id}
+                      className={grouping === item.id ? "is-active" : ""}
+                    >
+                      <input
+                        type="radio"
+                        name="archive-grouping"
+                        value={item.id}
+                        checked={grouping === item.id}
+                        onChange={() => goToGrouping(item.id)}
+                      />
+                      {item.label}
+                    </label>
+                  ))}
+                </fieldset>
+                <div className="archive-bar-end">
+                  <p className="scene-status">
+                    {reports.length} reports · {folders.length} folders
+                  </p>
+                  <button
+                    type="button"
+                    className="list-toggle"
+                    ref={listButtonRef}
+                    aria-expanded={listOpen}
+                    aria-controls="archive-panel"
+                    onClick={toggleList}
+                  >
+                    {listOpen ? "Hide list" : "Show list"}
+                  </button>
+                </div>
+              </header>
+            </div>
+            {!stacked ? panel : null}
           </div>
-
-          {stacked && !reduceMotion && (
+          {!reduceMotion && (
             <div className="intro-spacer" ref={spacerRef} aria-hidden="true" />
           )}
-
-          <aside
-            className="panel"
-            id="archive-panel"
-            hidden={!listOpen}
-            aria-label="Folder list and report details"
-          >
-            <div className="panel-scroll">
-              {selectedReport ? (
-                <ReportDetail
-                  report={selectedReport}
-                  headingRef={detailHeadingRef}
-                  onBack={closeDetail}
-                  folderLabel={selectedFolder?.label}
-                />
-              ) : (
-                <FolderIndex
-                  groupingMeta={groupingMeta}
-                  folders={folders}
-                  selectedFolderId={selectedFolderId}
-                  onSelectFolder={selectFolder}
-                  onSelectReport={selectReport}
-                />
-              )}
-            </div>
-            <div className="panel-footer">
-              <label className="toggle">
-                <input
-                  type="checkbox"
-                  checked={reduceMotion}
-                  onChange={(event) => setReduceMotion(event.currentTarget.checked)}
-                />
-                Reduce motion
-              </label>
-            </div>
-          </aside>
         </div>
-
-        {!stacked && !reduceMotion && (
-          <div className="intro-spacer" ref={spacerRef} aria-hidden="true" />
-        )}
+        {stacked ? panel : null}
       </div>
     </Shell>
   );

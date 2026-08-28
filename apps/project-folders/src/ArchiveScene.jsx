@@ -379,6 +379,7 @@ export default function ArchiveScene({
     const resize = () => {
       const w = Math.max(mount.clientWidth, 1);
       const h = Math.max(mount.clientHeight, 1);
+      if (w < 24 || h < 24) return;
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
@@ -386,6 +387,12 @@ export default function ArchiveScene({
     };
     const ro = new ResizeObserver(resize);
     ro.observe(mount);
+
+    const onContextLost = (event) => {
+      event.preventDefault();
+      onErrorRef.current?.();
+    };
+    renderer.domElement.addEventListener("webglcontextlost", onContextLost);
 
     const attachToFolder = (entry, folderId, pose) => {
       const folderEntry = folders.get(folderId);
@@ -421,8 +428,12 @@ export default function ArchiveScene({
         : easeInOut(transFrom === transTo ? 1 : Math.min(1, elapsed / MORPH_MS));
       const shuffling = transFrom !== transTo && blend < 1;
       const rowKey = twoRows ? "two" : "single";
-      const fromLayout = layouts[transFrom][rowKey];
-      const toLayout = layouts[transTo][rowKey];
+      const fromLayout = layouts[transFrom]?.[rowKey];
+      const toLayout = layouts[transTo]?.[rowKey];
+      if (!fromLayout || !toLayout) {
+        renderer.render(scene, camera);
+        return;
+      }
       const selectedFolder = selectedFolderRef.current;
       const selectedReport = selectedReportRef.current;
       const filed = reduce
@@ -637,6 +648,7 @@ export default function ArchiveScene({
       renderer.domElement.removeEventListener("pointerdown", onPointerDown);
       renderer.domElement.removeEventListener("pointermove", onPointerMove);
       renderer.domElement.removeEventListener("pointerup", onPointerUp);
+      renderer.domElement.removeEventListener("webglcontextlost", onContextLost);
       const sharedGeos = new Set([
         shared.pagesGeo,
         shared.coverGeo,

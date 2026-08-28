@@ -168,6 +168,12 @@ input:focus-visible,
   border: 0;
 }
 
+.file-block {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .stage {
   flex: 1;
   min-height: 0;
@@ -586,16 +592,18 @@ input:focus-visible,
   }
 
   .stage {
-    flex: none;
-    flex-direction: column;
+    display: contents;
     height: auto;
   }
 
   .stage-visual {
+    position: sticky;
+    top: 0;
+    z-index: 2;
     flex: none;
-    height: 78vh;
-    min-height: 22rem;
-    max-height: 86vh;
+    height: 52vh;
+    min-height: 18rem;
+    max-height: 62vh;
   }
 
   .panel {
