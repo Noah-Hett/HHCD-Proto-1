@@ -146,7 +146,7 @@ export default function App() {
       : `${mapped.plottedCount} of ${reports.length} reports plotted · ${mapped.unmappedCount} unmapped`;
 
   return (
-    <Shell title="Year × project type">
+    <Shell fill title="Year × project type">
       <div className={selected ? "workspace panel-open" : "workspace"}>
         <div className="toolbar">
           <p className="status">{status}</p>
