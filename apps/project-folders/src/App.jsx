@@ -11,7 +11,6 @@ import {
 } from "./grouping.js";
 
 const STACKED_QUERY = "(max-width: 860px)";
-const GROUPING_IDS = GROUPINGS.map((item) => item.id);
 
 function prefersReducedMotion() {
   if (typeof window === "undefined" || !window.matchMedia) return false;
@@ -26,17 +25,10 @@ function groupingLabel(id) {
   return GROUPINGS.find((item) => item.id === id)?.label ?? id;
 }
 
-function stepGrouping(id, direction) {
-  const index = GROUPING_IDS.indexOf(id);
-  const next = index + direction;
-  if (next < 0 || next >= GROUPING_IDS.length) return id;
-  return GROUPING_IDS[next];
-}
-
 export default function App() {
-  const stageRef = useRef(null);
   const detailHeadingRef = useRef(null);
   const lastTriggerRef = useRef(null);
+  const listButtonRef = useRef(null);
   const [grouping, setGrouping] = useState("theme");
   const [selectedFolderId, setSelectedFolderId] = useState(null);
   const [selectedReportNo, setSelectedReportNo] = useState(null);
@@ -44,6 +36,11 @@ export default function App() {
   const [webglFailed, setWebglFailed] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const [stacked, setStacked] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia
+      ? window.matchMedia(STACKED_QUERY).matches
+      : false,
+  );
+  const [listOpen, setListOpen] = useState(() =>
     typeof window !== "undefined" && window.matchMedia
       ? window.matchMedia(STACKED_QUERY).matches
       : false,
@@ -56,7 +53,6 @@ export default function App() {
   const selectedFolder =
     folders.find((folder) => folder.id === selectedFolderId) ?? null;
   const groupingMeta = GROUPINGS.find((item) => item.id === grouping);
-  const wheelGrouping = !stacked && !reduceMotion;
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -68,8 +64,11 @@ export default function App() {
 
   useEffect(() => {
     const media = window.matchMedia(STACKED_QUERY);
-    const onChange = () => setStacked(media.matches);
-    onChange();
+    const onChange = () => {
+      const next = media.matches;
+      setStacked(next);
+      setListOpen(next);
+    };
     media.addEventListener("change", onChange);
     return () => media.removeEventListener("change", onChange);
   }, []);
@@ -97,27 +96,20 @@ export default function App() {
     return () => window.clearTimeout(handle);
   }, [grouping, folders.length]);
 
-  useEffect(() => {
-    const root = stageRef.current;
-    if (!root || !wheelGrouping) return undefined;
-    let acc = 0;
-    const onWheel = (event) => {
-      event.preventDefault();
-      acc += event.deltaY;
-      if (acc > 90) {
-        acc = 0;
-        setGrouping((id) => stepGrouping(id, 1));
-      } else if (acc < -90) {
-        acc = 0;
-        setGrouping((id) => stepGrouping(id, -1));
-      }
-    };
-    root.addEventListener("wheel", onWheel, { passive: false });
-    return () => root.removeEventListener("wheel", onWheel);
-  }, [wheelGrouping]);
-
   const goToGrouping = (id) => {
     setGrouping(id);
+  };
+
+  const openList = () => {
+    setListOpen(true);
+  };
+
+  const toggleList = () => {
+    setListOpen((open) => {
+      const next = !open;
+      setAnnouncement(next ? "Folder list shown." : "Folder list hidden.");
+      return next;
+    });
   };
 
   const selectFolder = (id, trigger) => {
@@ -144,6 +136,7 @@ export default function App() {
     const folder = folderForReport(grouping, reportNo);
     setSelectedFolderId(folder?.id ?? null);
     setSelectedReportNo(reportNo);
+    setListOpen(true);
     const report = findReport(reportNo);
     if (report) {
       setAnnouncement(
@@ -158,16 +151,26 @@ export default function App() {
     lastTriggerRef.current?.focus?.();
   };
 
-  const hint = reduceMotion
-    ? groupingMeta?.description
-    : wheelGrouping
-      ? "Tabs or a wheel on the shelves regroup the archive. Each folder shows a peek of documents; the list has the full set. Click a folder to fan more peeks; click a report to slide it out."
-      : "Use the grouping tabs to re-shelf the archive. Each folder shows a peek of documents; the list has the full set. Click a folder to fan more peeks; click a report to slide it out.";
+  const hint =
+    "Use Theme, Year, or Project type to regroup. Tap a folder to zoom in; tap a risen report to open it. The list has every report.";
 
   return (
     <Shell fill title="Project folders">
-      <div className={`archive ${stacked ? "is-stacked" : "is-wide"}`}>
-        <a className="skip-link" href="#folder-index">
+      <div
+        className={`archive ${stacked ? "is-stacked" : "is-wide"} ${listOpen ? "is-list-open" : "is-list-closed"}`}
+      >
+        <a
+          className="skip-link"
+          href="#folder-index"
+          onClick={(event) => {
+            if (listOpen) return;
+            event.preventDefault();
+            openList();
+            window.setTimeout(() => {
+              document.getElementById("folder-index")?.scrollIntoView();
+            }, 50);
+          }}
+        >
           Skip 3D scene, browse folders as a list
         </a>
         <div className="sr-only" aria-live="polite" aria-atomic="true">
@@ -193,13 +196,25 @@ export default function App() {
               </label>
             ))}
           </fieldset>
-          <p className="scene-status">
-            {reports.length} reports · {folders.length} folders
-          </p>
+          <div className="archive-bar-end">
+            <p className="scene-status">
+              {reports.length} reports · {folders.length} folders
+            </p>
+            <button
+              type="button"
+              className="list-toggle"
+              ref={listButtonRef}
+              aria-expanded={listOpen}
+              aria-controls="archive-panel"
+              onClick={toggleList}
+            >
+              {listOpen ? "Hide list" : "Show list"}
+            </button>
+          </div>
         </header>
 
         <div className="stage">
-          <div className="stage-visual" ref={stageRef}>
+          <div className="stage-visual">
             {webglFailed ? (
               <div className="webgl-fallback" role="status">
                 <p>
@@ -221,7 +236,12 @@ export default function App() {
             <p className="scene-hint">{hint}</p>
           </div>
 
-          <aside className="panel" aria-label="Folder list and report details">
+          <aside
+            className="panel"
+            id="archive-panel"
+            hidden={!listOpen}
+            aria-label="Folder list and report details"
+          >
             <div className="panel-scroll">
               {selectedReport ? (
                 <ReportDetail
@@ -245,7 +265,7 @@ export default function App() {
                 <input
                   type="checkbox"
                   checked={reduceMotion}
-                  onChange={(event) => setReduceMotion(event.target.checked)}
+                  onChange={(event) => setReduceMotion(event.currentTarget.checked)}
                 />
                 Reduce motion
               </label>
@@ -325,8 +345,10 @@ function FolderIndex({
         })}
       </ul>
       <p className="panel-footnote">
-        Keyboard: tabs regroup the shelves. Folder buttons expand the list.
-        Enter opens a report. Escape closes the detail pane.
+        Keyboard: Theme, Year, and Project type regroup the shelves. Folder
+        buttons expand the list. Enter opens a report. Escape closes the
+        detail pane. Show list keeps this catalogue available when the 3D
+        stage is zoomed.
       </p>
     </div>
   );

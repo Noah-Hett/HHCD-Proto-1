@@ -24,7 +24,8 @@
 .skip-link:focus-visible,
 button:focus-visible,
 a:focus-visible,
-input:focus-visible {
+input:focus-visible,
+.list-toggle:focus-visible {
   outline: 3px solid var(--archive-focus);
   outline-offset: 3px;
 }
@@ -62,15 +63,43 @@ input:focus-visible {
   z-index: 3;
 }
 
+.archive-bar-end {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.list-toggle {
+  min-height: 48px;
+  min-width: 48px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--archive-line);
+  background: #f7f1e8;
+  color: var(--archive-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.list-toggle[aria-expanded="true"] {
+  background: var(--archive-ink);
+  color: #f7f1e8;
+  border-color: var(--archive-ink);
+}
+
 .skip-link {
   position: absolute;
   left: 12px;
-  top: -48px;
+  top: -56px;
   z-index: 20;
-  padding: 8px 12px;
+  padding: 12px 14px;
+  min-height: 48px;
   background: #f7f1e8;
   color: var(--archive-ink);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   text-decoration: underline;
 }
@@ -126,12 +155,12 @@ input:focus-visible {
   position: absolute;
   top: 0;
   left: 0;
-  max-width: 9.5rem;
-  padding: 2px 8px;
+  max-width: 11rem;
+  padding: 4px 10px;
   border-radius: 999px;
   background: rgba(28, 20, 12, 0.82);
   color: #fff;
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.3;
   text-align: center;
   pointer-events: none;
@@ -155,15 +184,15 @@ input:focus-visible {
 }
 
 .grouping-tabs label {
-  min-height: 44px;
+  min-height: 48px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 0 14px;
+  padding: 0 16px;
   border-radius: 999px;
   color: var(--archive-ink);
   cursor: pointer;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
 }
 
@@ -174,8 +203,8 @@ input:focus-visible {
 }
 
 .grouping-tabs input {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   margin: 0;
   accent-color: var(--archive-ink);
   flex-shrink: 0;
@@ -237,6 +266,10 @@ input:focus-visible {
   color: var(--archive-ink);
 }
 
+.panel[hidden] {
+  display: none;
+}
+
 .panel-scroll {
   flex: 1;
   min-height: 0;
@@ -256,14 +289,14 @@ input:focus-visible {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
-  min-height: 44px;
+  font-size: 15px;
+  min-height: 48px;
   cursor: pointer;
 }
 
 .toggle input {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   accent-color: var(--archive-ink);
 }
 
@@ -357,8 +390,8 @@ input:focus-visible {
   justify-content: space-between;
   gap: 12px;
   align-items: baseline;
-  min-height: 44px;
-  padding: 8px 10px;
+  min-height: 48px;
+  padding: 10px 12px;
   border-left: 3px solid transparent;
   border-bottom: 1px solid var(--archive-line);
 }
@@ -390,8 +423,8 @@ input:focus-visible {
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  min-height: 44px;
-  padding: 10px 12px 10px 22px;
+  min-height: 48px;
+  padding: 12px 12px 12px 22px;
 }
 
 .report-btn:hover,
@@ -417,10 +450,10 @@ input:focus-visible {
 
 .back-btn {
   width: auto;
-  min-height: 44px;
+  min-height: 48px;
   padding: 0;
   margin-bottom: 12px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -531,5 +564,10 @@ input:focus-visible {
 
   .folder-btn.is-open {
     border-left: 4px solid CanvasText;
+  }
+
+  .list-toggle[aria-expanded="true"] {
+    background: CanvasText;
+    color: Canvas;
   }
 }
