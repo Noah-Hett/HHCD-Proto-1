@@ -195,6 +195,8 @@
 }
 
 .scatter-frame {
+  position: relative;
+  display: flex;
   flex: 1;
   min-width: 0;
   min-height: 0;
@@ -203,12 +205,54 @@
   background: #fff;
 }
 
-.scatter {
-  width: 100%;
+.scatter-y-col {
+  flex: 0 0 168px;
+  width: 168px;
   height: 100%;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  background: #fff;
+}
+
+.scatter-y {
   display: block;
+  width: 168px;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.scatter-scroll {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  background: #fff;
+}
+
+.scatter-scroll:focus-visible {
+  outline: 2px solid #111;
+  outline-offset: -2px;
+}
+
+.scatter-plot {
+  display: block;
+  flex-shrink: 0;
   background: #fff;
   overflow: visible;
+}
+
+.scatter-frame.is-scrollable::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40px;
+  height: 100%;
+  pointer-events: none;
+  background: linear-gradient(to right, rgba(255, 255, 255, 0), #fff);
 }
 
 .y-label {

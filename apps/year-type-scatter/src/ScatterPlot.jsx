@@ -1,28 +1,38 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { Y_BANDS, clusterAriaLabel } from "./mapReports.js";
 
-const FALLBACK_SIZE = { width: 0, height: 0 };
+const LEFT = 168;
+const RIGHT = 40;
+const TOP = 36;
+const BOTTOM = 56;
+const PX_PER_YEAR = 48;
+const MIN_INNER_FLOOR = 692;
 
-function plotLayout(width, height) {
-  const left = width < 640 ? 132 : 168;
-  const right = Math.min(40, Math.max(28, width * 0.04));
-  const top = 36;
-  const bottom = 52;
-  const innerWidth = Math.max(width - left - right, 1);
-  const innerHeight = Math.max(height - top - bottom, 1);
+function minInnerWidth(yearMin, yearMax) {
+  const slots = Math.max(yearMax - yearMin, 1) + 1.2;
+  return Math.max(MIN_INNER_FLOOR, slots * PX_PER_YEAR);
+}
+
+function plotLayout(viewportWidth, height, yearMin, yearMax) {
+  const innerWidth = Math.max(
+    Math.max(viewportWidth - RIGHT, 1),
+    minInnerWidth(yearMin, yearMax),
+  );
+  const plotWidth = innerWidth + RIGHT;
+  const innerHeight = Math.max(height - TOP - BOTTOM, 1);
   return {
-    width,
     height,
-    left,
-    right,
-    top,
-    bottom,
+    left: LEFT,
+    right: RIGHT,
+    top: TOP,
+    bottom: BOTTOM,
     innerWidth,
     innerHeight,
-    originX: left,
-    originY: height - bottom,
+    plotWidth,
+    originY: height - BOTTOM,
     arrowTop: 10,
-    arrowRight: width - 10,
+    arrowRight: plotWidth - 10,
+    scrollable: plotWidth > viewportWidth + 1,
   };
 }
 
@@ -30,7 +40,7 @@ function xForYear(year, yearMin, yearMax, layout) {
   const span = Math.max(yearMax - yearMin, 1);
   const pad = 0.6;
   const t = (year - yearMin + pad) / (span + pad * 2);
-  return layout.left + t * layout.innerWidth;
+  return t * layout.innerWidth;
 }
 
 function yForBand(yBand, layout) {
@@ -38,27 +48,32 @@ function yForBand(yBand, layout) {
   return layout.top + layout.innerHeight * (1 - t);
 }
 
-function useFrameSize() {
+function usePlotSize() {
   const frameRef = useRef(null);
-  const [size, setSize] = useState(FALLBACK_SIZE);
+  const scrollRef = useRef(null);
+  const [size, setSize] = useState({ viewportWidth: 0, height: 0 });
 
   useLayoutEffect(() => {
-    const el = frameRef.current;
-    if (!el) return undefined;
+    const frame = frameRef.current;
+    const scroll = scrollRef.current;
+    if (!frame || !scroll) return undefined;
 
     const read = () => {
-      const { width, height } = el.getBoundingClientRect();
-      if (width < 2 || height < 2) return;
+      const height = scroll.clientHeight || frame.clientHeight;
+      const viewportWidth = scroll.clientWidth;
+      if (height < 2 || viewportWidth < 2) return;
       setSize((prev) =>
-        Math.abs(prev.width - width) < 0.5 && Math.abs(prev.height - height) < 0.5
+        Math.abs(prev.viewportWidth - viewportWidth) < 0.5 &&
+        Math.abs(prev.height - height) < 0.5
           ? prev
-          : { width, height },
+          : { viewportWidth, height },
       );
     };
 
     read();
     const observer = new ResizeObserver(read);
-    observer.observe(el);
+    observer.observe(frame);
+    observer.observe(scroll);
     window.addEventListener("resize", read);
     return () => {
       observer.disconnect();
@@ -66,7 +81,24 @@ function useFrameSize() {
     };
   }, []);
 
-  return [frameRef, size];
+  return { frameRef, scrollRef, size };
+}
+
+function AxisArrowMarker({ id }) {
+  return (
+    <marker
+      id={id}
+      viewBox="0 0 10 10"
+      refX="8"
+      refY="5"
+      markerWidth="8"
+      markerHeight="8"
+      orient="auto"
+      markerUnits="userSpaceOnUse"
+    >
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#111" />
+    </marker>
+  );
 }
 
 export default function ScatterPlot({
@@ -80,8 +112,9 @@ export default function ScatterPlot({
   onSelect,
   onDotRef,
 }) {
-  const [frameRef, size] = useFrameSize();
-  const layout = plotLayout(size.width, size.height);
+  const { frameRef, scrollRef, size } = usePlotSize();
+  const layout = plotLayout(size.viewportWidth, size.height, yearMin, yearMax);
+  const ready = size.viewportWidth > 1 && size.height > 1;
 
   function handleKeyDown(event, cluster) {
     if (event.key === "Enter" || event.key === " ") {
@@ -91,132 +124,161 @@ export default function ScatterPlot({
   }
 
   return (
-    <div className="scatter-frame" ref={frameRef}>
-      {layout.width > 1 && layout.height > 1 ? (
-      <svg
-        className="scatter"
-        width={layout.width}
-        height={layout.height}
-        viewBox={`0 0 ${layout.width} ${layout.height}`}
-        preserveAspectRatio="xMidYMid meet"
-        overflow="visible"
-        aria-labelledby="scatter-title scatter-desc"
-      >
-        <title id="scatter-title">HHCD reports by year and project type</title>
-        <desc id="scatter-desc">
-          Scatter plot of research associate reports. The horizontal axis is year.
-          The vertical axis is project type, from conceptual framework at the bottom
-          to products / media campaign at the top. Each report is a same-size dot,
-          coloured by research theme. Reports that share a year and type pack into
-          a small cluster. Activate a dot to read the report.
-        </desc>
-
-        <defs>
-          <marker
-            id="axis-arrow"
-            viewBox="0 0 10 10"
-            refX="8"
-            refY="5"
-            markerWidth="8"
-            markerHeight="8"
-            orient="auto"
-            markerUnits="userSpaceOnUse"
+    <div
+      className={
+        layout.scrollable ? "scatter-frame is-scrollable" : "scatter-frame"
+      }
+      ref={frameRef}
+    >
+      <div className="scatter-y-col">
+        {ready ? (
+          <svg
+            className="scatter-y"
+            width={LEFT}
+            height={layout.height}
+            viewBox={`0 0 ${LEFT} ${layout.height}`}
+            overflow="visible"
+            aria-hidden="true"
+            style={{ width: LEFT, height: layout.height }}
           >
-            <path d="M 0 0 L 10 5 L 0 10 z" fill="#111" />
-          </marker>
-        </defs>
+            <defs>
+              <AxisArrowMarker id="axis-arrow-y" />
+            </defs>
+            {Y_BANDS.map((band) => {
+              const y = yForBand(band.id, layout);
+              return (
+                <foreignObject
+                  key={band.id}
+                  x={8}
+                  y={y - 22}
+                  width={LEFT - 16}
+                  height={44}
+                >
+                  <div xmlns="http://www.w3.org/1999/xhtml" className="y-label">
+                    {band.label}
+                  </div>
+                </foreignObject>
+              );
+            })}
+            <line
+              className="axis-line"
+              x1={LEFT - 0.75}
+              y1={layout.originY}
+              x2={LEFT - 0.75}
+              y2={layout.arrowTop}
+              markerEnd="url(#axis-arrow-y)"
+            />
+          </svg>
+        ) : null}
+      </div>
+      <div
+        className="scatter-scroll"
+        ref={scrollRef}
+        tabIndex={layout.scrollable ? 0 : undefined}
+        role={layout.scrollable ? "region" : undefined}
+        aria-label={
+          layout.scrollable
+            ? "Year axis. Scroll horizontally to see later years."
+            : undefined
+        }
+      >
+        {ready ? (
+          <svg
+            className="scatter-plot"
+            width={layout.plotWidth}
+            height={layout.height}
+            viewBox={`0 0 ${layout.plotWidth} ${layout.height}`}
+            preserveAspectRatio="xMinYMin meet"
+            overflow="visible"
+            aria-labelledby="scatter-title scatter-desc"
+            style={{ width: layout.plotWidth, height: layout.height }}
+          >
+            <title id="scatter-title">
+              HHCD reports by year and project type
+            </title>
+            <desc id="scatter-desc">
+              Scatter plot of research associate reports. The horizontal axis is
+              year. The vertical axis is project type, from conceptual framework
+              at the bottom to products / media campaign at the top. Each report
+              is a same-size dot, coloured by research theme. Reports that share
+              a year and type pack into a small cluster. Activate a dot to read
+              the report. On a narrow window, scroll horizontally to keep year
+              spacing readable.
+            </desc>
 
-        <line
-          className="axis-line"
-          x1={layout.originX}
-          y1={layout.originY}
-          x2={layout.originX}
-          y2={layout.arrowTop}
-          markerEnd="url(#axis-arrow)"
-        />
-        <line
-          className="axis-line"
-          x1={layout.originX}
-          y1={layout.originY}
-          x2={layout.arrowRight}
-          y2={layout.originY}
-          markerEnd="url(#axis-arrow)"
-        />
+            <defs>
+              <AxisArrowMarker id="axis-arrow-x" />
+            </defs>
 
-        {Y_BANDS.map((band) => {
-          const y = yForBand(band.id, layout);
-          return (
-            <foreignObject
-              key={band.id}
-              x={8}
-              y={y - 22}
-              width={layout.left - 20}
-              height={44}
+            <line
+              className="axis-line"
+              x1={0}
+              y1={layout.originY}
+              x2={layout.arrowRight}
+              y2={layout.originY}
+              markerEnd="url(#axis-arrow-x)"
+            />
+
+            <text
+              className="x-end"
+              x={xForYear(yearMin, yearMin, yearMax, layout)}
+              y={layout.height - 18}
+              textAnchor="start"
             >
-              <div xmlns="http://www.w3.org/1999/xhtml" className="y-label">
-                {band.label}
-              </div>
-            </foreignObject>
-          );
-        })}
-
-        <text
-          className="x-end"
-          x={layout.left}
-          y={layout.height - 18}
-          textAnchor="start"
-        >
-          {yearMin}
-        </text>
-        <text
-          className="x-end"
-          x={layout.width - layout.right}
-          y={layout.height - 18}
-          textAnchor="end"
-        >
-          {yearMax}
-        </text>
-
-        {clusters.map((cluster) => {
-          const cx = xForYear(cluster.year, yearMin, yearMax, layout) + cluster.dx;
-          const cy = yForBand(cluster.yBand, layout) + cluster.dy;
-          const active = hoveredKey === cluster.key || selectedKey === cluster.key;
-          return (
-            <g
-              key={cluster.key}
-              className={active ? "dot active" : "dot"}
-              transform={`translate(${cx} ${cy})`}
-              tabIndex={0}
-              role="button"
-              aria-label={clusterAriaLabel(cluster)}
-              aria-pressed={selectedKey === cluster.key}
-              ref={(node) => onDotRef(cluster.key, node)}
-              onMouseEnter={(event) => onHover(cluster, event)}
-              onMouseMove={(event) => onHover(cluster, event)}
-              onMouseLeave={onLeave}
-              onFocus={(event) => onHover(cluster, event)}
-              onBlur={onLeave}
-              onClick={() => onSelect(cluster)}
-              onKeyDown={(event) => handleKeyDown(event, cluster)}
+              {yearMin}
+            </text>
+            <text
+              className="x-end"
+              x={xForYear(yearMax, yearMin, yearMax, layout)}
+              y={layout.height - 18}
+              textAnchor="end"
             >
-              <circle
-                className="dot-hit"
-                r={Math.max(cluster.r + 6, 12)}
-                fill="transparent"
-              />
-              <circle
-                className="dot-mark"
-                r={cluster.r}
-                fill={cluster.color}
-                stroke="#111"
-                strokeWidth={active ? 1.6 : 1}
-              />
-              <circle className="dot-focus" r={cluster.r + 3.5} />
-            </g>
-          );
-        })}
-      </svg>
-      ) : null}
+              {yearMax}
+            </text>
+
+            {clusters.map((cluster) => {
+              const cx =
+                xForYear(cluster.year, yearMin, yearMax, layout) + cluster.dx;
+              const cy = yForBand(cluster.yBand, layout) + cluster.dy;
+              const active =
+                hoveredKey === cluster.key || selectedKey === cluster.key;
+              return (
+                <g
+                  key={cluster.key}
+                  className={active ? "dot active" : "dot"}
+                  transform={`translate(${cx} ${cy})`}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={clusterAriaLabel(cluster)}
+                  aria-pressed={selectedKey === cluster.key}
+                  ref={(node) => onDotRef(cluster.key, node)}
+                  onMouseEnter={(event) => onHover(cluster, event)}
+                  onMouseMove={(event) => onHover(cluster, event)}
+                  onMouseLeave={onLeave}
+                  onFocus={(event) => onHover(cluster, event)}
+                  onBlur={onLeave}
+                  onClick={() => onSelect(cluster)}
+                  onKeyDown={(event) => handleKeyDown(event, cluster)}
+                >
+                  <circle
+                    className="dot-hit"
+                    r={Math.max(cluster.r + 6, 12)}
+                    fill="transparent"
+                  />
+                  <circle
+                    className="dot-mark"
+                    r={cluster.r}
+                    fill={cluster.color}
+                    stroke="#111"
+                    strokeWidth={active ? 1.6 : 1}
+                  />
+                  <circle className="dot-focus" r={cluster.r + 3.5} />
+                </g>
+              );
+            })}
+          </svg>
+        ) : null}
+      </div>
     </div>
   );
 }
