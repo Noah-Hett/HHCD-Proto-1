@@ -34,14 +34,14 @@ test("places every report on a regular grid without overlapping dots or lines", 
   const yearRange = yearRangeOf(reports);
   const margin = { top: 36, right: 36, bottom: AXIS_BOTTOM, left: 36 };
   for (const width of [960, 1100, 1400]) {
-    const { nodes } = layoutGraph(graph, {
+    const { nodes, height } = layoutGraph(graph, {
       width,
-      height: 420,
       margin,
       yearRange,
     });
     assert.equal(nodes.length, 64);
     assertOnGrid(nodes, margin);
+    assert.ok(height < 500);
     assert.equal(nodeCollisions(nodes, MIN_GAP).length, 0);
     assert.equal(lineNodeCollisions(nodes, graph.edges, LINE_CLEARANCE).length, 0);
 

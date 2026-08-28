@@ -206,7 +206,7 @@ function reservationsForYear(year, x, edges, byId) {
   return bands;
 }
 
-export function layoutGraph(graph, { width, height, margin, yearRange }) {
+export function layoutGraph(graph, { width, margin, yearRange }) {
   const nodes = graph.nodes.map((node) => ({ ...node }));
   const edges = graph.edges;
   const byId = new Map(nodes.map((node) => [node.id, node]));
@@ -272,7 +272,7 @@ export function layoutGraph(graph, { width, height, margin, yearRange }) {
 
   let maxY = -Infinity;
   for (const node of nodes) maxY = Math.max(maxY, node.y);
-  const finalHeight = Math.max(height, maxY + NODE_RADIUS + 12 + margin.bottom);
+  const finalHeight = maxY + NODE_RADIUS + 12 + margin.bottom;
 
   return { nodes, height: finalHeight };
 }
