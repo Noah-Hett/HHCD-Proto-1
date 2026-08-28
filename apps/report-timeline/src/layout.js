@@ -8,10 +8,10 @@ export const YEAR_FONT_SIZE = 11;
 export const AXIS_LABEL_GAP = 8;
 /** Half the vertical band reserved for the centred year spine and labels. */
 export const AXIS_HALF_BAND = YEAR_FONT_SIZE / 2 + AXIS_LABEL_GAP;
-/** Distance from the axis to the first report-row centre. */
-export const FIRST_ROW_OFFSET = AXIS_HALF_BAND + NODE_RADIUS;
 /** Half-width of a four-digit year label, including the halo stroke. */
 export const LABEL_HALF_WIDTH = YEAR_FONT_SIZE * 1.6;
+/** Distance from the axis to the first report-row centre. */
+export const FIRST_ROW_OFFSET = AXIS_HALF_BAND + CURVE_OFFSET + NODE_RADIUS;
 
 export function yearX(year, width, margin, yearRange) {
   const span = yearRange.max - yearRange.min || 1;
@@ -452,7 +452,7 @@ export function labelLineCollisions(
   edges,
   { width, margin, yearRange, axisY },
   halfWidth = LABEL_HALF_WIDTH,
-  halfHeight = AXIS_HALF_BAND,
+  halfHeight = AXIS_HALF_BAND + 4,
 ) {
   const byId = new Map(nodes.map((node) => [node.id, node]));
   const years = [];
