@@ -80,14 +80,15 @@ function fitRowCamera(layout, aspect, outPos, outLook) {
 }
 
 function fitArchiveCamera(archive, aspect, outPos, outLook) {
+  const a = Math.min(2.15, Math.max(0.72, Number.isFinite(aspect) && aspect > 0 ? aspect : 1.6));
   outLook.set(0, REPORT_H * 0.5, 0.02);
   const fov = CAM_FOV * (Math.PI / 180);
-  const worldW = archive.span + 1.5;
-  const worldH = REPORT_H + 0.5;
-  const distX = worldW / 2 / (Math.tan(fov / 2) * Math.max(aspect, 0.5));
+  const worldW = archive.span + 2.4;
+  const worldH = REPORT_H + 0.85;
+  const distX = worldW / 2 / (Math.tan(fov / 2) * a);
   const distY = worldH / 2 / Math.tan(fov / 2);
-  const dist = Math.max(distX, distY, 6.4) * 1.04;
-  outPos.set(archive.span * 0.06, REPORT_H * 0.52, dist);
+  const dist = Math.max(distX, distY, 10.5) * 1.14;
+  outPos.set(archive.span * 0.04, REPORT_H * 0.56, dist);
 }
 
 function fitShadow(sun, layout) {
@@ -148,12 +149,7 @@ export default function ArchiveScene({
     const scene = new THREE.Scene();
     scene.background = new THREE.Color("#C9DCE0");
 
-    const camera = new THREE.PerspectiveCamera(
-      CAM_FOV,
-      Math.max(mount.clientWidth, 1) / Math.max(mount.clientHeight, 1),
-      0.1,
-      80,
-    );
+    const camera = new THREE.PerspectiveCamera(CAM_FOV, 16 / 9, 0.1, 120);
 
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(mount.clientWidth, mount.clientHeight);
@@ -377,9 +373,9 @@ export default function ArchiveScene({
     renderer.domElement.addEventListener("pointerup", onPointerUp);
 
     const resize = () => {
-      const w = Math.max(mount.clientWidth, 1);
-      const h = Math.max(mount.clientHeight, 1);
-      if (w < 24 || h < 24) return;
+      const w = mount.clientWidth;
+      const h = mount.clientHeight;
+      if (w < 48 || h < 48) return;
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
@@ -387,6 +383,7 @@ export default function ArchiveScene({
     };
     const ro = new ResizeObserver(resize);
     ro.observe(mount);
+    resize();
 
     const onContextLost = (event) => {
       event.preventDefault();
@@ -439,14 +436,15 @@ export default function ArchiveScene({
       const filed = reduce
         ? 1
         : easeInOut(Math.min(1, Math.max(0, organizeRef.current)));
-      const enter = easeInOut(Math.max(0, Math.min(1, (filed - 0.16) / 0.62)));
+      const enter = easeInOut(Math.max(0, Math.min(1, (filed - 0.32) / 0.5)));
+      const camT = easeInOut(Math.max(0, Math.min(1, (filed - 0.08) / 0.82)));
       const shelved = filed >= 0.995;
 
       fitArchiveCamera(archiveLayout, camera.aspect, introPos, introLook);
       fitRowCamera(toLayout, camera.aspect, destPos, destLook);
       if (!shelved) {
-        camPos.lerpVectors(introPos, destPos, filed);
-        camLook.lerpVectors(introLook, destLook, filed);
+        camPos.lerpVectors(introPos, destPos, camT);
+        camLook.lerpVectors(introLook, destLook, camT);
         camera.position.copy(camPos);
         camera.lookAt(camLook);
       } else {

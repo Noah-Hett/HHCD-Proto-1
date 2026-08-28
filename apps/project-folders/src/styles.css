@@ -197,7 +197,7 @@ input:focus-visible,
 .scene-frame {
   position: relative;
   flex: 1;
-  min-height: 12rem;
+  min-height: 16rem;
 }
 
 .scene {
