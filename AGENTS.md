@@ -4,7 +4,7 @@
 
 Treat that message as a request to **create a new published page**, not to modify gallery/overview unless they explicitly say so.
 
-Each visualisation is a **full, independent Vite + React app** in `apps/<id>/` with its own `package.json`, `index.html`, `src/`, and `vite.config.js`. `scripts/build-site.mjs` compiles them into one static site (`dist/` + `dist/<id>/`) hosted on one Vercel project. Shared pieces: `@hhcd/data` (the 62-report JSON catalogue), optional `@hhcd/theme` tokens, and optional `@hhcd/shell` page chrome (`<Shell fill>` for full-bleed WebGL). There is no React Router, no shared runtime, and no iframe. Failure in one app does not take down others at runtime; `pnpm build` still builds every published app.
+Each visualisation is a **full, independent Vite + React app** in `apps/<id>/` with its own `package.json`, `index.html`, `src/`, and `vite.config.js`. `scripts/build-site.mjs` compiles them into one static site (`dist/` + `dist/<id>/`) hosted on one Vercel project. Shared pieces: `@hhcd/data` (the 64-report JSON catalogue), optional `@hhcd/theme` tokens, and optional `@hhcd/shell` page chrome (`<Shell fill>` for full-bleed WebGL). There is no React Router, no shared runtime, and no iframe. Failure in one app does not take down others at runtime; `pnpm build` still builds every published app.
 
 How close to an individual React app? It *is* one that lives in this monorepo and shares a dataset. Add any npm library to that app only. How detailed? As detailed as a static Vite SPA. Three.js / R3F on one page and D3 on another is expected. Limits: static hosting (no server/API unless you add one — there is none today), relative `base: "./"`, do not edit other apps, keep `apps/gallery` as the hub, keep `_starter` unpublished.
 
@@ -39,7 +39,7 @@ Follow AGENTS.md: run pnpm new-app with a kebab-case id, implement only in that 
 
 - Source CSV: `data/hhcd-reports.csv` (the filename used to contain spaces; always quote paths or glob).
 - Apps import `packages/data/src/reports.json` via `@hhcd/data`. After CSV edits run `python3 scripts/csv-to-json.py`.
-- Fields are quoted and contain embedded commas/newlines, so `wc -l` is **not** the row count. Use a real CSV parser. There are 62 report rows.
+- Fields are quoted and contain embedded commas/newlines, so `wc -l` is **not** the row count. Use a real CSV parser. There are 64 report rows.
 - The CSV has one `Methods [options]` column; JSON uses `methodsPrimary`.
 - Category values include both `Mobility and Transport` and a separate `Transport`.
 

@@ -15,7 +15,7 @@ pnpm install
 Optional metadata:
 
 ```bash
-pnpm new-app methods-network --title "Methods network" --goal "See which research methods cluster together across the 62 reports." --owner "Ada"
+pnpm new-app methods-network --title "Methods network" --goal "See which research methods cluster together across the 64 reports." --owner "Ada"
 # equivalent:
 pnpm new-app -- methods-network --title "Methods network" --goal "..." --owner "Ada"
 ```
@@ -48,8 +48,8 @@ Open a pull request. Vercel posts a preview URL. On production the page is `/<id
 
 ## Dataset gotchas
 
-- 62 reports. CSV path: `data/hhcd-reports.csv`. After CSV edits: `python3 scripts/csv-to-json.py`.
-- Two CSV columns are both named `Methods [options]` → JSON `methodsPrimary` and `methodsSecondary`.
+- 64 reports. CSV path: `data/hhcd-reports.csv`. After CSV edits: `python3 scripts/csv-to-json.py`.
+- The CSV has one `Methods [options]` column; JSON uses `methodsPrimary`.
 - Categories include both `Mobility and Transport` and `Transport`.
 
 ## Prompt for a Cursor cloud agent

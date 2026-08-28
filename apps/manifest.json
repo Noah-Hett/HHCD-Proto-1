@@ -3,9 +3,44 @@
     {
       "id": "overview",
       "title": "Dataset overview",
-      "goal": "See all 62 reports at a glance \u2014 categories, years, and a filterable catalogue.",
+      "goal": "See all 64 reports at a glance — categories, years, and a filterable catalogue.",
       "owner": "shared",
       "status": "live"
+    },
+    {
+      "id": "project-folders",
+      "title": "Project folders",
+      "goal": "Meet the reports as a side-on archive, then file them into magazine folders by theme, year, or project type.",
+      "owner": "Noah",
+      "status": "draft"
+    },
+    {
+      "id": "methods-fan",
+      "title": "Methods fan",
+      "goal": "See how each research method links into category nodes, then focus a category to fan its reports out above it.",
+      "owner": "Noah",
+      "status": "draft"
+    },
+    {
+      "id": "report-timeline",
+      "title": "Report timeline",
+      "goal": "See when associate reports were published and how project citations and author successions connect them.",
+      "owner": "Nayana Crowe",
+      "status": "draft"
+    },
+    {
+      "id": "year-type-scatter",
+      "title": "Year × project type",
+      "goal": "See how report types sit across time, coloured by research theme.",
+      "owner": "Nayana Crowe",
+      "status": "draft"
+    },
+    {
+      "id": "report-search",
+      "title": "Report search",
+      "goal": "Find reports by meaning: typed queries become method, year, and category filters plus ranked full-text.",
+      "owner": "Noah",
+      "status": "draft"
     }
   ]
 }

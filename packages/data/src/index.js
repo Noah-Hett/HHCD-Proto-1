@@ -1,4 +1,4 @@
-import reports from "./reports.json";
+import reports from "./reports.json" with { type: "json" };
 
 export { reports };
 
