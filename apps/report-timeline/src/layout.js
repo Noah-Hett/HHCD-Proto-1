@@ -2,7 +2,7 @@ export const NODE_RADIUS = 7;
 export const MIN_GAP = NODE_RADIUS * 2 + 12;
 export const LINE_CLEARANCE = NODE_RADIUS + 6;
 export const CURVE_OFFSET = 12;
-/** Space above the vertical axis arrow, and below the year labels. */
+/** Inset for the time axis, and space below the year labels. */
 export const AXIS_PAD = 16;
 export const YEAR_FONT_SIZE = 11;
 export const AXIS_LABEL_GAP = 8;
