@@ -3,8 +3,8 @@ import { Y_BANDS, clusterAriaLabel } from "./mapReports.js";
 
 const LEFT = 168;
 const RIGHT = 40;
-const TOP = 36;
-const BOTTOM = 56;
+const TOP = 28;
+const BOTTOM = 36;
 const PX_PER_YEAR = 48;
 const MIN_INNER_FLOOR = 692;
 
@@ -59,8 +59,8 @@ function usePlotSize() {
     if (!frame || !scroll) return undefined;
 
     const read = () => {
-      const height = scroll.clientHeight || frame.clientHeight;
-      const viewportWidth = scroll.clientWidth;
+      const height = Math.round(frame.getBoundingClientRect().height);
+      const viewportWidth = Math.round(scroll.getBoundingClientRect().width);
       if (height < 2 || viewportWidth < 2) return;
       setSize((prev) =>
         Math.abs(prev.viewportWidth - viewportWidth) < 0.5 &&
@@ -139,7 +139,7 @@ export default function ScatterPlot({
             viewBox={`0 0 ${LEFT} ${layout.height}`}
             overflow="visible"
             aria-hidden="true"
-            style={{ width: LEFT, height: layout.height }}
+            style={{ width: LEFT, height: "100%", aspectRatio: "auto" }}
           >
             <defs>
               <AxisArrowMarker id="axis-arrow-y" />
@@ -188,10 +188,14 @@ export default function ScatterPlot({
             width={layout.plotWidth}
             height={layout.height}
             viewBox={`0 0 ${layout.plotWidth} ${layout.height}`}
-            preserveAspectRatio="xMinYMin meet"
+            preserveAspectRatio="none"
             overflow="visible"
             aria-labelledby="scatter-title scatter-desc"
-            style={{ width: layout.plotWidth, height: layout.height }}
+            style={{
+              width: layout.plotWidth,
+              height: "100%",
+              aspectRatio: "auto",
+            }}
           >
             <title id="scatter-title">
               HHCD reports by year and project type

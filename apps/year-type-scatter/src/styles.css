@@ -1,15 +1,23 @@
 @import "@hhcd/theme/tokens.css";
 
+html,
+body,
+#root {
+  height: 100%;
+}
+
 .shell-fill .shell-main {
   display: flex;
   flex-direction: column;
+  flex: 1;
   min-height: 0;
+  overflow: hidden;
 }
 
 .workspace {
   display: flex;
   flex-direction: column;
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
   height: 100%;
   overflow: hidden;
@@ -179,53 +187,49 @@
 
 .chart-row {
   display: flex;
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
 }
 
 .chart-wrap {
   position: relative;
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
-  padding: 4px 8px 12px;
-  background: var(--bg);
+  padding: 0;
+  background: #fff;
 }
 
 .scatter-frame {
-  position: relative;
+  position: absolute;
+  inset: 0;
   display: flex;
-  flex: 1;
+  align-items: stretch;
   min-width: 0;
   min-height: 0;
-  width: 100%;
-  height: 100%;
   background: #fff;
 }
 
 .scatter-y-col {
   flex: 0 0 168px;
   width: 168px;
-  height: 100%;
+  align-self: stretch;
   z-index: 1;
-  display: flex;
-  align-items: flex-start;
   background: #fff;
 }
 
 .scatter-y {
   display: block;
   width: 168px;
-  flex-shrink: 0;
+  height: 100%;
   overflow: visible;
 }
 
 .scatter-scroll {
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
-  height: 100%;
+  min-height: 0;
+  align-self: stretch;
   overflow-x: auto;
   overflow-y: hidden;
   overscroll-behavior-x: contain;
@@ -239,7 +243,10 @@
 
 .scatter-plot {
   display: block;
+  height: 100%;
+  max-height: 100%;
   flex-shrink: 0;
+  aspect-ratio: auto;
   background: #fff;
   overflow: visible;
 }
