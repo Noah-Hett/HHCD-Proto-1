@@ -11,6 +11,8 @@ import {
   websiteUrls,
 } from "./graph.js";
 import {
+  AXIS_BOTTOM,
+  AXIS_PAD,
   NODE_RADIUS,
   layoutGraph,
   linePath,
@@ -19,7 +21,7 @@ import {
   yearX,
 } from "./layout.js";
 
-const MARGIN = { top: 28, right: 20, bottom: 40, left: 32 };
+const MARGIN = { top: 36, right: 36, bottom: AXIS_BOTTOM, left: 36 };
 const MIN_CHART_WIDTH = 960;
 
 function SidePanel({ report, edges, reportsById, onClose, onOpen }) {
@@ -111,7 +113,7 @@ export default function App() {
     [],
   );
   const frameRef = useRef(null);
-  const [size, setSize] = useState({ width: MIN_CHART_WIDTH, height: 520 });
+  const [width, setWidth] = useState(MIN_CHART_WIDTH);
   const [hoverId, setHoverId] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [tooltip, setTooltip] = useState(null);
@@ -122,10 +124,7 @@ export default function App() {
     const observer = new ResizeObserver((entries) => {
       const rect = entries[0]?.contentRect;
       if (!rect) return;
-      setSize({
-        width: Math.max(rect.width, MIN_CHART_WIDTH),
-        height: Math.max(rect.height, 420),
-      });
+      setWidth(Math.max(rect.width, MIN_CHART_WIDTH));
     });
     observer.observe(node);
     return () => observer.disconnect();
@@ -134,12 +133,11 @@ export default function App() {
   const laidOut = useMemo(
     () =>
       layoutGraph(graph, {
-        width: size.width,
-        height: size.height,
+        width,
         margin: MARGIN,
         yearRange,
       }),
-    [graph, size.height, size.width],
+    [graph, width],
   );
 
   const nodesById = useMemo(
@@ -167,7 +165,7 @@ export default function App() {
     setTooltip(null);
   }
 
-  const ticks = yearTicks(yearRange.min, yearRange.max, size.width);
+  const ticks = yearTicks(yearRange.min, yearRange.max, width);
 
   return (
     <Shell title="Report timeline">
@@ -214,28 +212,69 @@ export default function App() {
             <div ref={frameRef} className="chart-frame">
               <svg
                 className="chart"
-                width={size.width}
+                width={width}
                 height={laidOut.height}
-                viewBox={`0 0 ${size.width} ${laidOut.height}`}
+                viewBox={`0 0 ${width} ${laidOut.height}`}
                 role="img"
                 aria-label="Timeline of research associate reports by year"
                 onClick={() => setSelectedId(null)}
               >
+                <defs>
+                  <marker
+                    id="axis-arrow"
+                    viewBox="0 0 10 10"
+                    refX="8"
+                    refY="5"
+                    markerWidth="8"
+                    markerHeight="8"
+                    orient="auto"
+                    markerUnits="userSpaceOnUse"
+                  >
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#111" />
+                  </marker>
+                </defs>
                 {ticks.map((year) => {
-                  const x = yearX(year, size.width, MARGIN, yearRange);
+                  const x = yearX(year, width, MARGIN, yearRange);
                   return (
-                    <g key={year}>
-                      <line
-                        className="grid"
-                        x1={x}
-                        x2={x}
-                        y1={MARGIN.top}
-                        y2={laidOut.height - MARGIN.bottom}
-                      />
-                      <text className="tick" x={x} y={laidOut.height - 14} textAnchor="middle">
-                        {year}
-                      </text>
-                    </g>
+                    <line
+                      key={`grid-${year}`}
+                      className="grid"
+                      x1={x}
+                      x2={x}
+                      y1={MARGIN.top}
+                      y2={laidOut.height - MARGIN.bottom}
+                    />
+                  );
+                })}
+                <line
+                  className="axis-line"
+                  x1={AXIS_PAD}
+                  y1={laidOut.height - MARGIN.bottom}
+                  x2={AXIS_PAD}
+                  y2={AXIS_PAD}
+                  markerEnd="url(#axis-arrow)"
+                />
+                <line
+                  className="axis-line"
+                  x1={AXIS_PAD}
+                  y1={laidOut.height - MARGIN.bottom}
+                  x2={width - AXIS_PAD}
+                  y2={laidOut.height - MARGIN.bottom}
+                  markerEnd="url(#axis-arrow)"
+                />
+                {ticks.map((year) => {
+                  const x = yearX(year, width, MARGIN, yearRange);
+                  return (
+                    <text
+                      key={`tick-${year}`}
+                      className="tick"
+                      x={x}
+                      y={laidOut.height - AXIS_PAD}
+                      textAnchor="middle"
+                      dominantBaseline="text-after-edge"
+                    >
+                      {year}
+                    </text>
                   );
                 })}
 

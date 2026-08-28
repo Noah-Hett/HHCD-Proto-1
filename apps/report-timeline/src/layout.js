@@ -2,6 +2,11 @@ export const NODE_RADIUS = 7;
 export const MIN_GAP = NODE_RADIUS * 2 + 12;
 export const LINE_CLEARANCE = NODE_RADIUS + 6;
 export const CURVE_OFFSET = 12;
+/** Space above the vertical axis arrow, and below the year labels. */
+export const AXIS_PAD = 16;
+export const YEAR_FONT_SIZE = 11;
+export const AXIS_LABEL_GAP = 8;
+export const AXIS_BOTTOM = AXIS_PAD + YEAR_FONT_SIZE + AXIS_LABEL_GAP;
 
 export function yearX(year, width, margin, yearRange) {
   const span = yearRange.max - yearRange.min || 1;
@@ -135,26 +140,33 @@ function neighborMap(edges) {
   return map;
 }
 
-function intervalsOverlap(a0, a1, b0, b1) {
-  return a0 < b1 && b0 < a1;
+function gridY(row, yMin, gap) {
+  return yMin + row * gap;
+}
+
+function rowHitsReservation(row, yMin, gap, reservations) {
+  const y = gridY(row, yMin, gap);
+  return reservations.some((res) => y > res.lo && y < res.hi);
 }
 
 function placeBlocks(blocks, yMin, gap, reservations = []) {
-  let y = yMin;
+  let row = 0;
   for (const block of blocks) {
-    const blockSpan = Math.max(block.length - 1, 0) * gap;
-    for (let step = 0; step < 80; step += 1) {
-      const lo = y - LINE_CLEARANCE;
-      const hi = y + blockSpan + LINE_CLEARANCE;
-      const hit = reservations.find((res) => intervalsOverlap(lo, hi, res.lo, res.hi));
-      if (!hit) break;
-      y = Math.max(y + gap / 4, hit.hi + LINE_CLEARANCE);
+    for (let step = 0; step < 200; step += 1) {
+      let blocked = false;
+      for (let i = 0; i < block.length; i += 1) {
+        if (rowHitsReservation(row + i, yMin, gap, reservations)) {
+          blocked = true;
+          break;
+        }
+      }
+      if (!blocked) break;
+      row += 1;
     }
     for (const node of block) {
-      node.y = y;
-      y += gap;
+      node.y = gridY(row, yMin, gap);
+      row += 1;
     }
-    y += gap * 0.2;
   }
 }
 
@@ -188,13 +200,13 @@ function reservationsForYear(year, x, edges, byId) {
       const endpoint = year === a.year ? a : b;
       if (Math.abs(y - endpoint.y) < NODE_RADIUS + 2) continue;
     }
-    bands.push({ lo: y - LINE_CLEARANCE - 2, hi: y + LINE_CLEARANCE + 2 });
+    bands.push({ lo: y - LINE_CLEARANCE + 0.05, hi: y + LINE_CLEARANCE - 0.05 });
   }
   bands.sort((left, right) => left.lo - right.lo);
   return bands;
 }
 
-export function layoutGraph(graph, { width, height, margin, yearRange }) {
+export function layoutGraph(graph, { width, margin, yearRange }) {
   const nodes = graph.nodes.map((node) => ({ ...node }));
   const edges = graph.edges;
   const byId = new Map(nodes.map((node) => [node.id, node]));
@@ -207,13 +219,7 @@ export function layoutGraph(graph, { width, height, margin, yearRange }) {
     columns.set(year, connectedBlocks(colNodes, edges));
   }
 
-  const maxCount = Math.max(
-    ...[...columns.values()].map((blocks) => blocks.reduce((sum, block) => sum + block.length, 0)),
-    1,
-  );
   const gap = MIN_GAP;
-  const needed = margin.top + margin.bottom + maxCount * gap + 120;
-  const chartHeight = Math.max(height, needed);
   const yMin = margin.top + NODE_RADIUS;
 
   for (const node of nodes) {
@@ -257,20 +263,47 @@ export function layoutGraph(graph, { width, height, margin, yearRange }) {
       placeBlocks(blocks, yMin, gap, reservationsForYear(year, x, edges, byId));
     }
   }
-  let minY = Infinity;
+
+  for (let pass = 0; pass < 8; pass += 1) {
+    for (const blocks of columns.values()) {
+      repairColumn(blocks, edges, byId, yMin, gap);
+    }
+  }
+
   let maxY = -Infinity;
-  for (const node of nodes) {
-    minY = Math.min(minY, node.y);
-    maxY = Math.max(maxY, node.y);
-  }
-  const extra = yMin - minY;
-  if (extra !== 0) {
-    for (const node of nodes) node.y += extra;
-    maxY += extra;
-  }
-  const finalHeight = Math.max(chartHeight, maxY + margin.bottom + NODE_RADIUS + 12);
+  for (const node of nodes) maxY = Math.max(maxY, node.y);
+  const finalHeight = maxY + NODE_RADIUS + 12 + margin.bottom;
 
   return { nodes, height: finalHeight };
+}
+
+function blockHitsLines(block, edges, byId) {
+  for (const node of block) {
+    for (const edge of edges) {
+      const a = byId.get(edge.source);
+      const b = byId.get(edge.target);
+      if (!a || !b) continue;
+      if (node.id === a.id || node.id === b.id) continue;
+      if (distPointToEdge(node, a, b, edge.curve) < LINE_CLEARANCE - 0.05) return true;
+    }
+  }
+  return false;
+}
+
+function repairColumn(blocks, edges, byId, yMin, gap) {
+  const ordered = [...blocks].sort((left, right) => left[0].y - right[0].y);
+  let minRow = 0;
+  for (const block of ordered) {
+    let row = Math.max(minRow, Math.round((block[0].y - yMin) / gap));
+    for (let guard = 0; guard < 200; guard += 1) {
+      for (let i = 0; i < block.length; i += 1) {
+        block[i].y = gridY(row + i, yMin, gap);
+      }
+      if (row >= minRow && !blockHitsLines(block, edges, byId)) break;
+      row += 1;
+    }
+    minRow = row + block.length;
+  }
 }
 
 export function linePath(a, b) {

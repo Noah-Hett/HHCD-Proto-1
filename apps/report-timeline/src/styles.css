@@ -88,10 +88,19 @@
   stroke-width: 1;
 }
 
+.axis-line {
+  fill: none;
+  stroke: #111;
+  stroke-width: 1.5;
+  stroke-linecap: square;
+  pointer-events: none;
+}
+
 .tick {
   font-size: 11px;
-  fill: var(--muted);
+  fill: #111;
   font-variant-numeric: tabular-nums;
+  font-family: var(--font);
 }
 
 .link {
