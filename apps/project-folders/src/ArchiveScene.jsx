@@ -7,6 +7,8 @@ import {
   FOLDER_D,
   FOLDER_W,
   PEEK_SELECT,
+  REPORT_H,
+  computeArchiveLayout,
   computeLayout,
   createFolderMesh,
   createReportMesh,
@@ -27,7 +29,6 @@ function sideSign(x) {
 
 const EXIT_X = 12;
 const MORPH_MS = 900;
-const INTRO_MS = 1400;
 const CAM_FOV = 22;
 const TAP_SLOP = 18;
 const FOCUS_Z = 3.05;
@@ -78,12 +79,15 @@ function fitRowCamera(layout, aspect, outPos, outLook) {
   outPos.set(outLook.x - 0.36 * dist, outLook.y + 0.5 * dist, outLook.z + dist);
 }
 
-function fitSideCamera(layout, outPos, outLook) {
-  const ext = layoutExtents(layout);
-  const midY = 1.2;
-  const midZ = (ext.minZ + ext.maxZ) / 2 + FOLDER_D * 0.28;
-  outLook.set((ext.minX + ext.maxX) / 2, midY, midZ);
-  outPos.set(ext.maxX + 5.4, midY + 0.45, midZ + 0.55);
+function fitArchiveCamera(archive, aspect, outPos, outLook) {
+  outLook.set(0, REPORT_H * 0.5, 0.02);
+  const fov = CAM_FOV * (Math.PI / 180);
+  const worldW = archive.span + 1.5;
+  const worldH = REPORT_H + 0.5;
+  const distX = worldW / 2 / (Math.tan(fov / 2) * Math.max(aspect, 0.5));
+  const distY = worldH / 2 / Math.tan(fov / 2);
+  const dist = Math.max(distX, distY, 6.4) * 1.04;
+  outPos.set(archive.span * 0.06, REPORT_H * 0.52, dist);
 }
 
 function fitShadow(sun, layout) {
@@ -100,6 +104,7 @@ function fitShadow(sun, layout) {
 
 export default function ArchiveScene({
   grouping,
+  organize = 1,
   reduceMotion,
   selectedFolderId,
   selectedReportNo,
@@ -111,6 +116,7 @@ export default function ArchiveScene({
   const labelRef = useRef(null);
   const onErrorRef = useRef(onWebglError);
   const groupingRef = useRef(grouping);
+  const organizeRef = useRef(organize);
   const reduceRef = useRef(reduceMotion);
   const selectedFolderRef = useRef(selectedFolderId);
   const selectedReportRef = useRef(selectedReportNo);
@@ -118,6 +124,7 @@ export default function ArchiveScene({
   const onReportRef = useRef(onSelectReport);
 
   groupingRef.current = grouping;
+  organizeRef.current = organize;
   reduceRef.current = reduceMotion;
   selectedFolderRef.current = selectedFolderId;
   selectedReportRef.current = selectedReportNo;
@@ -227,21 +234,20 @@ export default function ArchiveScene({
       pickables.push(...folder.pickable);
     }
 
+    const archiveLayout = computeArchiveLayout(reports);
     const startLayout = layouts.theme.single;
     for (const report of reports) {
       const { group, pickable, texture, coverMat } = createReportMesh(
         report,
         shared,
       );
-      const start = startLayout.reportPos[report.reportNo];
-      const folderEntry = start ? folders.get(start.folderId) : null;
-      if (start && folderEntry) {
-        folderEntry.group.add(group);
-        group.position.set(start.x, start.y, start.z);
-        group.rotation.x = start.rx;
-        group.visible = start.visibleAtRest;
+      const loose = archiveLayout.reportPos[report.reportNo];
+      scene.add(group);
+      if (loose) {
+        group.position.set(loose.x, loose.y, loose.z);
+        group.rotation.y = loose.ry ?? 0;
+        group.visible = true;
       } else {
-        scene.add(group);
         group.visible = false;
       }
       pickables.push(...pickable);
@@ -252,22 +258,18 @@ export default function ArchiveScene({
         texture,
         coverMat,
         id: report.reportNo,
-        folderId: start?.folderId ?? null,
+        folderId: startLayout.reportPos[report.reportNo]?.folderId ?? null,
       });
     }
 
     for (const [id, entry] of folders) {
       const start = startLayout.folderPos[id];
+      entry.parked = true;
+      entry.group.visible = false;
+      entry.group.position.set(EXIT_X, 0, start?.z ?? 0);
       if (start) {
-        entry.group.position.set(start.x, start.y, start.z);
-        entry.group.visible = true;
-        entry.parked = false;
         entry.restX = start.x;
         entry.restZ = start.z;
-      } else {
-        entry.parked = true;
-        entry.group.position.set(EXIT_X, 0, 0);
-        entry.group.visible = false;
       }
     }
 
@@ -281,7 +283,7 @@ export default function ArchiveScene({
     const destLook = new THREE.Vector3();
     const projected = new THREE.Vector3();
 
-    fitSideCamera(startLayout, introPos, introLook);
+    fitArchiveCamera(archiveLayout, camera.aspect, introPos, introLook);
     fitRowCamera(startLayout, camera.aspect, destPos, destLook);
     camera.position.copy(introPos);
     camera.lookAt(introLook);
@@ -296,7 +298,6 @@ export default function ArchiveScene({
     let transFrom = "theme";
     let transTo = "theme";
     let transStart = 0;
-    let introStart = 0;
     let lastShadowKey = "";
 
     const setPointer = (event) => {
@@ -315,11 +316,15 @@ export default function ArchiveScene({
           const pose = layouts[transTo][twoRows ? "two" : "single"].reportPos[
             data.reportNo
           ];
+          if (organizeRef.current < 0.95 && !reduceRef.current) return hit;
           if (!pose) continue;
           if (selectedFolder && pose.folderId !== selectedFolder) continue;
           return hit;
         }
-        if (data.kind === "folder") return hit;
+        if (data.kind === "folder") {
+          if (organizeRef.current < 0.95 && !reduceRef.current) continue;
+          return hit;
+        }
       }
       return null;
     };
@@ -388,6 +393,9 @@ export default function ArchiveScene({
       if (entry.group.parent !== folderEntry.group) {
         folderEntry.group.add(entry.group);
         entry.folderId = folderId;
+        entry.group.position.set(pose.x, pose.y, pose.z);
+        entry.group.rotation.set(pose.rx ?? 0, 0, 0);
+        entry.group.scale.setScalar(1);
       }
     };
 
@@ -398,7 +406,6 @@ export default function ArchiveScene({
         sun.shadow.map.texture.minFilter = THREE.NearestFilter;
         sun.userData.hardened = true;
       }
-      if (!introStart) introStart = now;
 
       const reduce = reduceRef.current;
       const nextGrouping = groupingRef.current;
@@ -418,15 +425,17 @@ export default function ArchiveScene({
       const toLayout = layouts[transTo][rowKey];
       const selectedFolder = selectedFolderRef.current;
       const selectedReport = selectedReportRef.current;
-
-      const introT = reduce
+      const filed = reduce
         ? 1
-        : easeInOut(Math.min(1, (now - introStart) / INTRO_MS));
+        : easeInOut(Math.min(1, Math.max(0, organizeRef.current)));
+      const enter = easeInOut(Math.max(0, Math.min(1, (filed - 0.16) / 0.62)));
+      const shelved = filed >= 0.995;
+
+      fitArchiveCamera(archiveLayout, camera.aspect, introPos, introLook);
       fitRowCamera(toLayout, camera.aspect, destPos, destLook);
-      if (introT < 1 && !selectedFolder) {
-        fitSideCamera(toLayout, introPos, introLook);
-        camPos.lerpVectors(introPos, destPos, introT);
-        camLook.lerpVectors(introLook, destLook, introT);
+      if (!shelved) {
+        camPos.lerpVectors(introPos, destPos, filed);
+        camLook.lerpVectors(introLook, destLook, filed);
         camera.position.copy(camPos);
         camera.lookAt(camLook);
       } else {
@@ -449,15 +458,20 @@ export default function ArchiveScene({
       for (const [id, entry] of folders) {
         const slide = folderTarget(fromLayout, toLayout, id, entry);
         const label = labelNodes.get(id);
-        const selected = id === selectedFolder && slide.onStage && !shuffling;
-        const targetX = selected ? FOCUS_X : slide.x;
+        const selected =
+          shelved && id === selectedFolder && slide.onStage && !shuffling;
+        let targetX = selected ? FOCUS_X : slide.x;
         const targetY = selected ? FOCUS_Y : 0;
         const targetZ = selected ? FOCUS_Z : slide.z;
         const targetYaw = selected ? FOCUS_YAW : 0;
         const targetScale = selected ? FOCUS_SCALE : 1;
+        if (!shelved && slide.onStage) {
+          targetX = slide.x + sideSign(slide.x || 1) * EXIT_X * (1 - enter);
+        }
         const follow = reduce ? 1 : selected ? 0.12 : 0.09;
+        const onStage = slide.onStage && (shelved || enter > 0);
 
-        if (slide.onStage) {
+        if (onStage) {
           if (entry.parked) {
             entry.group.position.set(
               targetX + sideSign(targetX) * EXIT_X,
@@ -495,14 +509,15 @@ export default function ArchiveScene({
           if (Math.abs(entry.group.position.x) > 11) entry.parked = true;
         }
         entry.group.visible =
-          !entry.parked && Math.abs(entry.group.position.x) < 14;
+          onStage && !entry.parked && Math.abs(entry.group.position.x) < 14;
 
         if (!label) continue;
         const nearRest =
-          slide.onStage &&
+          onStage &&
           Math.abs(entry.group.position.x - targetX) < 0.55 &&
           Math.abs(entry.group.position.z - targetZ) < 0.55;
         const showLabel =
+          shelved &&
           entry.group.visible &&
           nearRest &&
           (!selectedFolder || selected);
@@ -528,6 +543,33 @@ export default function ArchiveScene({
 
       for (const entry of reportEntries) {
         const dest = toLayout.reportPos[entry.id];
+        const loose = archiveLayout.reportPos[entry.id];
+        if (!dest && !loose) {
+          entry.group.visible = false;
+          continue;
+        }
+        if (!shelved) {
+          if (entry.group.parent !== scene) scene.add(entry.group);
+          const folderEntry = dest ? folders.get(dest.folderId) : null;
+          const fp = folderEntry?.group.position ?? { x: 0, y: 0, z: 0 };
+          const ax = loose?.x ?? 0;
+          const ay = loose?.y ?? REPORT_H * 0.5;
+          const az = loose?.z ?? 0;
+          const bx = fp.x + (dest?.x ?? 0);
+          const by = fp.y + (dest?.y ?? ay);
+          const bz = fp.z + (dest?.z ?? 0);
+          const g = entry.group;
+          g.visible = true;
+          g.position.set(
+            THREE.MathUtils.lerp(ax, bx, filed),
+            THREE.MathUtils.lerp(ay, by, filed),
+            THREE.MathUtils.lerp(az, bz, filed),
+          );
+          g.rotation.x = THREE.MathUtils.lerp(loose?.rx ?? 0, dest?.rx ?? 0, filed);
+          g.rotation.y = THREE.MathUtils.lerp(loose?.ry ?? 0, 0, filed);
+          g.scale.setScalar(1);
+          continue;
+        }
         if (!dest) {
           entry.group.visible = false;
           continue;

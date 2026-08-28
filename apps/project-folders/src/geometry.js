@@ -436,3 +436,27 @@ export function computeLayout(folders, { twoRows = false } = {}) {
 
   return { folderPos, reportPos, folders, spacing, count: n, twoRows };
 }
+
+export function computeArchiveLayout(list) {
+  const n = list.length;
+  const gap = REPORT_THICK + 0.02;
+  const span = Math.max(n - 1, 1) * gap;
+  const reportPos = {};
+  list.forEach((report, index) => {
+    reportPos[report.reportNo] = {
+      x: -span / 2 + index * gap,
+      y: REPORT_H * 0.5,
+      z: ((index % 7) - 3) * 0.038,
+      rx: 0,
+      ry: 0.2,
+    };
+  });
+  return {
+    reportPos,
+    span,
+    minX: -span / 2,
+    maxX: span / 2,
+    minZ: -0.14,
+    maxZ: 0.14,
+  };
+}

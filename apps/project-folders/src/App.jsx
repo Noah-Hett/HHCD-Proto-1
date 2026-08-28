@@ -26,10 +26,15 @@ function groupingLabel(id) {
 }
 
 export default function App() {
+  const scrollRef = useRef(null);
+  const spacerRef = useRef(null);
   const detailHeadingRef = useRef(null);
   const lastTriggerRef = useRef(null);
   const listButtonRef = useRef(null);
   const [grouping, setGrouping] = useState("theme");
+  const [organize, setOrganize] = useState(() =>
+    prefersReducedMotion() ? 1 : 0,
+  );
   const [selectedFolderId, setSelectedFolderId] = useState(null);
   const [selectedReportNo, setSelectedReportNo] = useState(null);
   const [reduceMotion, setReduceMotion] = useState(prefersReducedMotion);
@@ -96,8 +101,31 @@ export default function App() {
     return () => window.clearTimeout(handle);
   }, [grouping, folders.length]);
 
+  useEffect(() => {
+    if (reduceMotion) setOrganize(1);
+  }, [reduceMotion]);
+
+  const onScroll = () => {
+    const root = scrollRef.current;
+    const spacer = spacerRef.current;
+    if (!root || reduceMotion) return;
+    const max = spacer?.offsetHeight || root.clientHeight * 0.7;
+    const next = max > 0 ? Math.min(1, Math.max(0, root.scrollTop / max)) : 1;
+    setOrganize(next);
+  };
+
+  const finishIntro = () => {
+    setOrganize(1);
+    const root = scrollRef.current;
+    const spacer = spacerRef.current;
+    if (root && spacer) {
+      root.scrollTo({ top: spacer.offsetHeight, behavior: reduceMotion ? "auto" : "smooth" });
+    }
+  };
+
   const goToGrouping = (id) => {
     setGrouping(id);
+    if (organize < 1) finishIntro();
   };
 
   const openList = () => {
@@ -113,6 +141,7 @@ export default function App() {
   };
 
   const selectFolder = (id, trigger) => {
+    if (organize < 1) finishIntro();
     if (trigger) lastTriggerRef.current = trigger;
     if (!id || id === selectedFolderId) {
       setSelectedFolderId(null);
@@ -124,6 +153,7 @@ export default function App() {
   };
 
   const selectReport = (reportNo, trigger) => {
+    if (organize < 1) finishIntro();
     if (trigger) lastTriggerRef.current = trigger;
     if (!reportNo) {
       setSelectedReportNo(null);
@@ -152,19 +182,23 @@ export default function App() {
   };
 
   const hint =
-    "Use Theme, Year, or Project type to regroup. Tap a folder to bring it closer; tap a risen report to open it. The list has every report.";
+    organize < 0.85 && !reduceMotion
+      ? "Scroll to file the reports into magazine folders. Theme, Year, and Project type regroup the shelves after that."
+      : "Use Theme, Year, or Project type to regroup. Tap a folder to bring it closer; tap a risen report to open it. The list has every report.";
 
   return (
     <Shell fill title="Project folders">
       <div
-        className={`archive ${stacked ? "is-stacked" : "is-wide"} ${listOpen ? "is-list-open" : "is-list-closed"}`}
+        className={`archive ${stacked ? "is-stacked" : "is-wide"} ${listOpen ? "is-list-open" : "is-list-closed"} ${organize >= 0.85 || reduceMotion ? "is-filed" : "is-unfiled"}`}
+        ref={scrollRef}
+        onScroll={onScroll}
       >
         <a
           className="skip-link"
           href="#folder-index"
           onClick={(event) => {
-            if (listOpen) return;
             event.preventDefault();
+            finishIntro();
             openList();
             window.setTimeout(() => {
               document.getElementById("folder-index")?.scrollIntoView();
@@ -177,64 +211,80 @@ export default function App() {
           {announcement}
         </div>
 
-        <header className="archive-bar">
-          <fieldset className="grouping-tabs">
-            <legend className="sr-only">Regroup the archive</legend>
-            {GROUPINGS.map((item) => (
-              <label
-                key={item.id}
-                className={grouping === item.id ? "is-active" : ""}
-              >
-                <input
-                  type="radio"
-                  name="archive-grouping"
-                  value={item.id}
-                  checked={grouping === item.id}
-                  onChange={() => goToGrouping(item.id)}
-                />
-                {item.label}
-              </label>
-            ))}
-          </fieldset>
-          <div className="archive-bar-end">
-            <p className="scene-status">
-              {reports.length} reports · {folders.length} folders
-            </p>
-            <button
-              type="button"
-              className="list-toggle"
-              ref={listButtonRef}
-              aria-expanded={listOpen}
-              aria-controls="archive-panel"
-              onClick={toggleList}
-            >
-              {listOpen ? "Hide list" : "Show list"}
-            </button>
-          </div>
-        </header>
-
         <div className="stage">
           <div className="stage-visual">
-            {webglFailed ? (
-              <div className="webgl-fallback" role="status">
-                <p>
-                  The 3D archive could not start in this browser. The folder
-                  list on this page has the same reports and grouping.
+            <section className="intro" aria-labelledby="archive-intro-title">
+              <h1 id="archive-intro-title" className="intro-title">
+                62 reports, one archive
+              </h1>
+              <p className="intro-lead">
+                {organize < 0.85 && !reduceMotion
+                  ? "Helen Hamlyn Centre for Design, 2000–2017. These documents are not yet divided into folders — this side view is the whole archive. Scroll to file them by theme, year, or project type."
+                  : "Helen Hamlyn Centre for Design, 2000–2017. The reports are filed in magazine folders. Theme, year, and project type regroup the shelves."}
+              </p>
+            </section>
+            <div className="scene-frame">
+              {webglFailed ? (
+                <div className="webgl-fallback" role="status">
+                  <p>
+                    The 3D archive could not start in this browser. The folder
+                    list on this page has the same reports and grouping.
+                  </p>
+                </div>
+              ) : (
+                <ArchiveScene
+                  grouping={grouping}
+                  organize={reduceMotion ? 1 : organize}
+                  reduceMotion={reduceMotion}
+                  selectedFolderId={selectedFolderId}
+                  selectedReportNo={selectedReportNo}
+                  onSelectFolder={(id) => selectFolder(id)}
+                  onSelectReport={(reportNo) => selectReport(reportNo)}
+                  onWebglError={() => setWebglFailed(true)}
+                />
+              )}
+              <p className="scene-hint">{hint}</p>
+            </div>
+            <header className="archive-bar">
+              <fieldset className="grouping-tabs">
+                <legend className="sr-only">Regroup the archive</legend>
+                {GROUPINGS.map((item) => (
+                  <label
+                    key={item.id}
+                    className={grouping === item.id ? "is-active" : ""}
+                  >
+                    <input
+                      type="radio"
+                      name="archive-grouping"
+                      value={item.id}
+                      checked={grouping === item.id}
+                      onChange={() => goToGrouping(item.id)}
+                    />
+                    {item.label}
+                  </label>
+                ))}
+              </fieldset>
+              <div className="archive-bar-end">
+                <p className="scene-status">
+                  {reports.length} reports · {folders.length} folders
                 </p>
+                <button
+                  type="button"
+                  className="list-toggle"
+                  ref={listButtonRef}
+                  aria-expanded={listOpen}
+                  aria-controls="archive-panel"
+                  onClick={toggleList}
+                >
+                  {listOpen ? "Hide list" : "Show list"}
+                </button>
               </div>
-            ) : (
-              <ArchiveScene
-                grouping={grouping}
-                reduceMotion={reduceMotion}
-                selectedFolderId={selectedFolderId}
-                selectedReportNo={selectedReportNo}
-                onSelectFolder={(id) => selectFolder(id)}
-                onSelectReport={(reportNo) => selectReport(reportNo)}
-                onWebglError={() => setWebglFailed(true)}
-              />
-            )}
-            <p className="scene-hint">{hint}</p>
+            </header>
           </div>
+
+          {stacked && !reduceMotion && (
+            <div className="intro-spacer" ref={spacerRef} aria-hidden="true" />
+          )}
 
           <aside
             className="panel"
@@ -272,6 +322,10 @@ export default function App() {
             </div>
           </aside>
         </div>
+
+        {!stacked && !reduceMotion && (
+          <div className="intro-spacer" ref={spacerRef} aria-hidden="true" />
+        )}
       </div>
     </Shell>
   );
@@ -286,7 +340,7 @@ function FolderIndex({
 }) {
   return (
     <div>
-      <h1 className="panel-title">Project folders</h1>
+      <h2 className="panel-title">Folder list</h2>
       <p className="panel-lead">
         {groupingMeta?.description} The shelves show a peek of documents in
         each folder — this list is the full set. Jackets are mostly
