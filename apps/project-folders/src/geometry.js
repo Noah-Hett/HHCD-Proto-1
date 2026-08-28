@@ -244,8 +244,8 @@ export function createCoverTexture(report) {
   ctx.font = "bold 22px ui-sans-serif, system-ui, sans-serif";
   ctx.fillText(`No. ${report.reportNo}`, 16, 34);
 
-  ctx.font = "bold 20px ui-sans-serif, system-ui, sans-serif";
-  wrapTitle(ctx, report.title, 16, 84, 224, 26, 4);
+  ctx.font = "bold 24px ui-sans-serif, system-ui, sans-serif";
+  wrapTitle(ctx, report.title, 16, 88, 224, 30, 4);
 
   ctx.font = "16px ui-sans-serif, system-ui, sans-serif";
   ctx.fillText(String(report.year ?? ""), 16, 356);

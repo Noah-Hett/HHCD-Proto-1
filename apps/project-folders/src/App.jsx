@@ -152,7 +152,7 @@ export default function App() {
   };
 
   const hint =
-    "Use Theme, Year, or Project type to regroup. Tap a folder to zoom in; tap a risen report to open it. The list has every report.";
+    "Use Theme, Year, or Project type to regroup. Tap a folder to bring it closer; tap a risen report to open it. The list has every report.";
 
   return (
     <Shell fill title="Project folders">
