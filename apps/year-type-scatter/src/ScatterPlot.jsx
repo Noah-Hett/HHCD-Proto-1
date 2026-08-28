@@ -4,7 +4,7 @@ import { Y_BANDS, clusterAriaLabel } from "./mapReports.js";
 const LEFT = 168;
 const RIGHT = 40;
 const TOP = 28;
-const BOTTOM = 28;
+const BOTTOM = 2;
 const PX_PER_YEAR = 48;
 const MIN_INNER_FLOOR = 692;
 
@@ -46,7 +46,7 @@ function xForYear(year, yearMin, yearMax, layout) {
 function yForBand(yBand, layout) {
   const n = Y_BANDS.length;
   const top = layout.top;
-  const bottom = layout.originY - 16;
+  const bottom = layout.originY - 18;
   if (n <= 1) return (top + bottom) / 2;
   const t = yBand / (n - 1);
   return bottom - t * (bottom - top);
@@ -63,8 +63,10 @@ function usePlotSize() {
     if (!frame || !scroll) return undefined;
 
     const read = () => {
-      const height = Math.round(frame.getBoundingClientRect().height);
-      const viewportWidth = Math.round(scroll.getBoundingClientRect().width);
+      const height = Math.round(
+        scroll.clientHeight || frame.getBoundingClientRect().height,
+      );
+      const viewportWidth = Math.round(scroll.clientWidth);
       if (height < 2 || viewportWidth < 2) return;
       setSize((prev) =>
         Math.abs(prev.viewportWidth - viewportWidth) < 0.5 &&
@@ -232,7 +234,7 @@ export default function ScatterPlot({
             <text
               className="x-end"
               x={xForYear(yearMin, yearMin, yearMax, layout)}
-              y={layout.height - 12}
+              y={layout.originY - 6}
               textAnchor="start"
             >
               {yearMin}
@@ -240,7 +242,7 @@ export default function ScatterPlot({
             <text
               className="x-end"
               x={xForYear(yearMax, yearMin, yearMax, layout)}
-              y={layout.height - 12}
+              y={layout.originY - 6}
               textAnchor="end"
             >
               {yearMax}

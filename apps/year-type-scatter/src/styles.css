@@ -237,6 +237,7 @@ body,
   overflow-y: hidden;
   overscroll-behavior-x: contain;
   scrollbar-width: thin;
+  scrollbar-color: #bbb #fff;
   background: #fff;
 }
 
