@@ -26,8 +26,8 @@ function groupingLabel(id) {
 }
 
 export default function App() {
-  const scrollRef = useRef(null);
-  const spacerRef = useRef(null);
+  const stageRef = useRef(null);
+  const organizeRef = useRef(0);
   const detailHeadingRef = useRef(null);
   const lastTriggerRef = useRef(null);
   const listButtonRef = useRef(null);
@@ -50,6 +50,7 @@ export default function App() {
       ? window.matchMedia(STACKED_QUERY).matches
       : false,
   );
+  organizeRef.current = organize;
 
   const folders = useMemo(() => groupReports(grouping), [grouping]);
   const selectedReport = selectedReportNo
@@ -105,22 +106,48 @@ export default function App() {
     if (reduceMotion) setOrganize(1);
   }, [reduceMotion]);
 
-  const onScroll = () => {
-    const root = scrollRef.current;
-    const spacer = spacerRef.current;
-    if (!root || reduceMotion) return;
-    const max = spacer?.offsetHeight || root.clientHeight * 0.7;
-    const next = max > 0 ? Math.min(1, Math.max(0, root.scrollTop / max)) : 1;
-    setOrganize(next);
-  };
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el || reduceMotion) return undefined;
+    const applyDelta = (dy) => {
+      const current = organizeRef.current;
+      const next = Math.min(1, Math.max(0, current + dy / 900));
+      if (next !== current) setOrganize(next);
+    };
+    const onWheel = (event) => {
+      const current = organizeRef.current;
+      if (current >= 1 && event.deltaY > 0) return;
+      if (current <= 0 && event.deltaY < 0) return;
+      event.preventDefault();
+      applyDelta(event.deltaY);
+    };
+    let touchY = null;
+    const onTouchStart = (event) => {
+      touchY = event.touches[0]?.clientY ?? null;
+    };
+    const onTouchMove = (event) => {
+      if (touchY == null) return;
+      const y = event.touches[0]?.clientY;
+      if (y == null) return;
+      const dy = touchY - y;
+      const current = organizeRef.current;
+      if (current >= 1 && dy > 0) return;
+      event.preventDefault();
+      applyDelta(dy);
+      touchY = y;
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+    };
+  }, [reduceMotion]);
 
   const finishIntro = () => {
     setOrganize(1);
-    const root = scrollRef.current;
-    const spacer = spacerRef.current;
-    if (root && spacer) {
-      root.scrollTo({ top: spacer.offsetHeight, behavior: reduceMotion ? "auto" : "smooth" });
-    }
   };
 
   const goToGrouping = (id) => {
@@ -183,7 +210,7 @@ export default function App() {
 
   const hint =
     organize < 0.85 && !reduceMotion
-      ? "Scroll to file the reports into magazine folders. Theme, Year, and Project type regroup the shelves after that."
+      ? "Scroll or swipe the archive to file the reports into magazine folders. Theme, Year, and Project type regroup the shelves after that."
       : "Use Theme, Year, or Project type to regroup. Tap a folder to bring it closer; tap a risen report to open it. The list has every report.";
 
   const panel = (
@@ -228,8 +255,6 @@ export default function App() {
     <Shell fill title="Project folders">
       <div
         className={`archive ${stacked ? "is-stacked" : "is-wide"} ${listOpen ? "is-list-open" : "is-list-closed"} ${organize >= 0.85 || reduceMotion ? "is-filed" : "is-unfiled"}`}
-        ref={scrollRef}
-        onScroll={onScroll}
       >
         <a
           className="skip-link"
@@ -249,16 +274,15 @@ export default function App() {
           {announcement}
         </div>
 
-        <div className="file-block">
-          <div className="stage">
-            <div className="stage-visual">
+        <div className="stage">
+          <div className="stage-visual" ref={stageRef}>
               <section className="intro" aria-labelledby="archive-intro-title">
                 <h1 id="archive-intro-title" className="intro-title">
                   62 reports, one archive
                 </h1>
                 <p className="intro-lead">
                   {organize < 0.85 && !reduceMotion
-                    ? "Helen Hamlyn Centre for Design, 2000–2017. These documents are not yet divided into folders — this side view is the whole archive. Scroll to file them by theme, year, or project type."
+                    ? "Helen Hamlyn Centre for Design, 2000–2017. These documents are not yet divided into folders — this side view is the whole archive. Scroll, swipe, or file them by theme, year, or project type."
                     : "Helen Hamlyn Centre for Design, 2000–2017. The reports are filed in magazine folders. Theme, year, and project type regroup the shelves."}
                 </p>
               </section>
@@ -307,6 +331,15 @@ export default function App() {
                   <p className="scene-status">
                     {reports.length} reports · {folders.length} folders
                   </p>
+                  {organize < 1 && !reduceMotion && (
+                    <button
+                      type="button"
+                      className="list-toggle"
+                      onClick={finishIntro}
+                    >
+                      File into folders
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="list-toggle"
@@ -319,12 +352,8 @@ export default function App() {
                   </button>
                 </div>
               </header>
-            </div>
-            {!stacked ? panel : null}
           </div>
-          {!reduceMotion && (
-            <div className="intro-spacer" ref={spacerRef} aria-hidden="true" />
-          )}
+          {!stacked ? panel : null}
         </div>
         {stacked ? panel : null}
       </div>

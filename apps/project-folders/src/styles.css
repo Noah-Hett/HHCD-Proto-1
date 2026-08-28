@@ -41,9 +41,13 @@ input:focus-visible,
   min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow: auto;
+  overflow: hidden;
   position: relative;
   color: var(--archive-ink);
+}
+
+.archive.is-stacked {
+  overflow: auto;
 }
 
 .intro {
@@ -78,12 +82,6 @@ input:focus-visible,
   color: var(--archive-muted);
 }
 
-.intro-spacer {
-  flex-shrink: 0;
-  height: 82vh;
-  pointer-events: none;
-}
-
 .archive-bar {
   position: relative;
   z-index: 5;
@@ -96,19 +94,6 @@ input:focus-visible,
   padding: 10px 16px;
   background: rgba(247, 241, 232, 0.96);
   border-top: 1px solid var(--archive-line);
-}
-
-.archive.is-wide .stage {
-  flex: 0 0 auto;
-  height: min(calc(100dvh - 4.75rem), 760px);
-  min-height: 22rem;
-}
-
-@media (min-width: 861px) {
-  .archive.is-wide .stage {
-    position: sticky;
-    top: 0;
-  }
 }
 
 .archive-bar-end {
@@ -166,12 +151,6 @@ input:focus-visible,
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
-}
-
-.file-block {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
 }
 
 .stage {
@@ -592,14 +571,12 @@ input:focus-visible,
   }
 
   .stage {
-    display: contents;
+    flex: none;
+    flex-direction: column;
     height: auto;
   }
 
   .stage-visual {
-    position: sticky;
-    top: 0;
-    z-index: 2;
     flex: none;
     height: 52vh;
     min-height: 18rem;
