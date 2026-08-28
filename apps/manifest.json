@@ -3,9 +3,16 @@
     {
       "id": "overview",
       "title": "Dataset overview",
-      "goal": "See all 62 reports at a glance \u2014 categories, years, and a filterable catalogue.",
+      "goal": "See all 62 reports at a glance — categories, years, and a filterable catalogue.",
       "owner": "shared",
       "status": "live"
+    },
+    {
+      "id": "project-folders",
+      "title": "Project folders",
+      "goal": "Meet the 62 reports as a side-on archive, then file them into magazine folders by theme, year, or project type.",
+      "owner": "Noah",
+      "status": "draft"
     }
   ]
 }
