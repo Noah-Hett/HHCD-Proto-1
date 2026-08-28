@@ -64,7 +64,19 @@
 }
 
 .fan.is-zoomed .fan-band:not(.is-current) {
-  fill-opacity: 0.28;
+  fill-opacity: 0.62;
+}
+
+.fan.is-zoomed .fan-node.is-category:not(.is-current) {
+  opacity: 0.62;
+}
+
+.fan.is-zoomed.is-focusing .fan-node.is-category:not(.is-current) {
+  opacity: 0.55;
+}
+
+.fan.is-zoomed.is-focusing .fan-band:not(.is-current) {
+  opacity: 0.72;
 }
 
 .fan-pop {
@@ -217,10 +229,6 @@
 
 .fan.is-zoomed .outer-label.is-category {
   display: none;
-}
-
-.fan.is-zoomed .fan-node.is-category:not(.is-current) {
-  opacity: 0.38;
 }
 
 .fan.is-zoomed .guide-pop {
