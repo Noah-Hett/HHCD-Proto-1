@@ -250,14 +250,6 @@ export default function App() {
                   className="axis-line"
                   x1={AXIS_PAD}
                   y1={laidOut.height - MARGIN.bottom}
-                  x2={AXIS_PAD}
-                  y2={AXIS_PAD}
-                  markerEnd="url(#axis-arrow)"
-                />
-                <line
-                  className="axis-line"
-                  x1={AXIS_PAD}
-                  y1={laidOut.height - MARGIN.bottom}
                   x2={width - AXIS_PAD}
                   y2={laidOut.height - MARGIN.bottom}
                   markerEnd="url(#axis-arrow)"
