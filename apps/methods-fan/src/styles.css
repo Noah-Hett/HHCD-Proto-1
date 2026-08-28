@@ -55,8 +55,20 @@
 }
 
 .fan.is-zoomed .fan-wedge {
-  cursor: default;
-  pointer-events: none;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.fan.is-zoomed .fan-wedge:not(.is-current) {
+  fill-opacity: 0.03;
+}
+
+.fan.is-zoomed .fan-wedge.is-current {
+  fill-opacity: 0.12;
+}
+
+.fan.is-zoomed .fan-band:not(.is-current) {
+  fill-opacity: 0.32;
 }
 
 .fan-band {
@@ -200,9 +212,29 @@
   fill: var(--text);
 }
 
-.fan.is-zoomed .outer-label {
-  font-size: 11px;
-  font-weight: 500;
+.fan.is-zoomed .outer-label.is-category {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.fan.is-zoomed .fan-node.is-category:not(.is-current),
+.fan.is-zoomed .outer-label.is-category:not(.is-current) {
+  opacity: 0.38;
+}
+
+.fan.is-zoomed .outer-label.is-project {
+  font-size: 12px;
+  font-weight: 600;
+  fill: #111;
+  stroke: var(--bg);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+  paint-order: stroke fill;
+  opacity: 0;
+}
+
+.fan.is-zoomed.is-focusing .outer-label.is-project.is-hot {
+  opacity: 1;
 }
 
 .fan.is-focusing .fan-ribbon {
@@ -230,10 +262,14 @@
 
 .fan.is-focusing .method-label,
 .fan.is-focusing .cat-label,
-.fan.is-focusing .outer-label,
+.fan.is-focusing .outer-label.is-hot,
+.fan.is-focusing .outer-label.is-current,
 .fan.is-focusing .fan-node.is-hot,
+.fan.is-focusing .fan-node.is-current,
 .fan.is-focusing .fan-band.is-hot,
-.fan.is-focusing .fan-wedge.is-hot {
+.fan.is-focusing .fan-band.is-current,
+.fan.is-focusing .fan-wedge.is-hot,
+.fan.is-focusing .fan-wedge.is-current {
   opacity: 1;
 }
 

@@ -19,6 +19,7 @@ import {
   nodesForView,
   polar,
   wrapLines,
+  shortTitle,
 } from "./graph.js";
 
 function applyMethodMarks(sel) {
@@ -203,7 +204,7 @@ export function FanChart({
       .attr("id", "methods-fan-desc")
       .text(
         zoomed
-          ? `Zoomed into ${zoomedCategory}. Inner marks are methods used in this category, each with its own symbol. Names are in the method key; hover a mark to read it on the fan. Outer nodes are this category’s reports around the semicircle. Escape returns to all categories.`
+          ? `Zoomed into ${zoomedCategory}. Category nodes stay on the middle arc. This category’s reports sit on the outer arc. Hover a report to read its title. Escape returns to all categories.`
           : "Inner marks are research methods, each with its own symbol. Names live in the method key; hover a mark to read it on the fan. Outer nodes are categories. A curve from a method to a category means reports in that category used the method. Activate a category to zoom in.",
       );
 
@@ -310,18 +311,18 @@ export function FanChart({
           : `${d.label}, used in ${d.count} of ${graph.projects.length} reports`,
       );
     categorySel
+      .classed("is-current", (d) => d.id === zoomedCategory)
       .attr("tabindex", 0)
       .attr("role", "button")
-      .attr(
-        "aria-label",
-        (d) => `${d.label} category, ${d.count} reports. Activate to zoom in.`,
+      .attr("aria-label", (d) =>
+        zoomed && d.id === zoomedCategory
+          ? `${d.label} category, currently focused, ${d.count} reports`
+          : `${d.label} category, ${d.count} reports. Activate to ${zoomed ? "switch to this category" : "zoom in"}.`,
       );
     projectSel
       .attr("tabindex", -1)
-      .attr(
-        "aria-label",
-        (d) => `${d.title}, ${d.report.year ?? "year unknown"}`,
-      );
+      .attr("aria-label", (d) => d.title);
+    projectSel.select("title").text((d) => d.title);
 
     const methodLabelSel = labelG
       .selectAll("text.method-label")
@@ -342,15 +343,19 @@ export function FanChart({
         (d) => d.id,
       )
       .join("text")
-      .attr("class", "outer-label")
+      .attr("class", (d) =>
+        d.kind === "project" ? "outer-label is-project" : "outer-label is-category",
+      )
+      .classed("is-current", (d) => d.kind === "category" && d.id === zoomedCategory)
       .attr("text-anchor", "middle")
       .attr("aria-hidden", "true")
       .each(function (d) {
         const text =
           d.kind === "category"
             ? d.label.replace(" and ", " & ")
-            : String(d.report.year ?? "");
-        const lines = d.kind === "category" ? wrapLines(text, 14) : [text];
+            : shortTitle(d.title, 40);
+        const lines =
+          d.kind === "category" ? wrapLines(text, 14) : wrapLines(text, 22);
         const sel = select(this);
         sel.selectAll("tspan").remove();
         lines.forEach((line, i) => {
@@ -421,7 +426,7 @@ export function FanChart({
         return;
       }
       if (d.kind === "category") {
-        onZoomRef.current?.(d.id);
+        onZoomRef.current?.(d.id === zoomedCategory ? null : d.id);
         return;
       }
       onSelectRef.current?.(d);
@@ -472,13 +477,11 @@ export function FanChart({
     svg.on("pointerleave", () => onFocusRef.current?.(null));
 
     function drawStatic() {
-      const { cx, cy, innerR, projectR, bandInner, bandOuter, angleStart, angleEnd } =
+      const { cx, cy, innerR, categoryR, projectR, bandInner, bandOuter, angleStart, angleEnd } =
         metrics;
-      const bandSource = zoomed
-        ? graph.categories.filter((item) => item.id === zoomedCategory)
-        : graph.categories;
+      const bandSource = graph.categories;
       const wedgeArc = d3arc()
-        .innerRadius(innerR * 0.55)
+        .innerRadius(zoomed ? categoryR * 0.84 : innerR * 0.55)
         .outerRadius(bandOuter)
         .startAngle((d) => mathToArc(d.angle0))
         .endAngle((d) => mathToArc(d.angle1));
@@ -497,16 +500,14 @@ export function FanChart({
         .data(bandSource, (d) => d.id)
         .join("path")
         .attr("class", "fan-wedge")
+        .classed("is-current", (d) => d.id === zoomedCategory)
         .attr("d", wedgeArc)
         .attr("fill", (d) => d.color)
-        .on("pointerenter", (event, d) => {
-          if (!zoomed) emitFocus(d, event);
-        })
+        .on("pointerenter", (event, d) => emitFocus(d, event))
         .on("pointerleave", () => onFocusRef.current?.(null))
         .on("click", (event, d) => {
-          if (zoomed) return;
           event.stopPropagation();
-          onZoomRef.current?.(d.id);
+          onZoomRef.current?.(d.id === zoomedCategory ? null : d.id);
         });
 
       bandsG
@@ -514,31 +515,29 @@ export function FanChart({
         .data(bandSource, (d) => d.id)
         .join("path")
         .attr("class", "fan-band")
+        .classed("is-current", (d) => d.id === zoomedCategory)
         .attr("d", bandArc)
         .attr("fill", (d) => d.color)
         .attr("aria-hidden", "true");
 
+      const guideData = zoomed
+        ? [
+            { id: "inner", r: innerR },
+            { id: "mid", r: categoryR },
+            { id: "outer", r: projectR },
+          ]
+        : [
+            { id: "inner", r: innerR },
+            { id: "outer", r: categoryR },
+          ];
       guidesG
         .selectAll("path.guide")
-        .data([
-          { id: "inner", r: innerR },
-          { id: "outer", r: projectR },
-        ])
+        .data(guideData)
         .join("path")
         .attr("class", (d) => `guide guide-${d.id}`)
         .attr("d", (d) => ringPath(cx, cy, d.r, angleStart, angleEnd));
 
-      catLabelsG
-        .selectAll("text.cat-band-label")
-        .data(zoomed ? bandSource : [], (d) => d.id)
-        .join("text")
-        .attr("class", "cat-label cat-band-label")
-        .attr("text-anchor", "middle")
-        .attr("aria-hidden", "true")
-        .each(function (d) {
-          const pos = polar(cx, cy, bandOuter + 16, d.mid);
-          select(this).attr("transform", `translate(${pos.x},${pos.y})`).text(d.label);
-        });
+      catLabelsG.selectAll("text.cat-band-label").remove();
     }
 
     function ticked() {
@@ -592,16 +591,21 @@ export function FanChart({
           return `translate(${p.x},${p.y})`;
         });
 
-      outerLabelSel.attr("transform", (d) => {
-        const a = Math.atan2(d.y - cy, d.x - cx);
-        const outward =
-          d.ring +
-          d.r +
-          (d.kind === "category" ? 16 : 12) +
-          ((d.outerLines ?? 1) - 1) * 6;
-        const p = polar(cx, cy, outward, a);
-        return `translate(${p.x},${p.y})`;
-      });
+      outerLabelSel
+        .attr("text-anchor", (d) => {
+          if (d.kind !== "project") return "middle";
+          const a = Math.atan2(d.y - cy, d.x - cx);
+          return methodLabelAnchor(a);
+        })
+        .attr("transform", (d) => {
+          const a = Math.atan2(d.y - cy, d.x - cx);
+          const outward =
+            d.kind === "project"
+              ? d.ring - d.r - 12 - ((d.outerLines ?? 1) - 1) * 6
+              : d.ring + d.r + 16 + ((d.outerLines ?? 1) - 1) * 6;
+          const p = polar(cx, cy, outward, a);
+          return `translate(${p.x},${p.y})`;
+        });
     }
 
     sim.on("tick", ticked);
@@ -691,10 +695,12 @@ export function FanChart({
         <span>inner → methods by symbol</span>
         <span>
           {zoomed
-            ? `outer → ${zoomedCategory} reports`
+            ? "middle → categories · outer → reports"
             : "outer → category nodes"}
         </span>
-        <span>line texture also marks category</span>
+        <span>
+          {zoomed ? "hover a report for its title" : "line texture also marks category"}
+        </span>
       </p>
     </div>
   );
