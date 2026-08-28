@@ -11,6 +11,8 @@ import {
   websiteUrls,
 } from "./graph.js";
 import {
+  AXIS_BOTTOM,
+  AXIS_PAD,
   NODE_RADIUS,
   layoutGraph,
   linePath,
@@ -19,7 +21,7 @@ import {
   yearX,
 } from "./layout.js";
 
-const MARGIN = { top: 28, right: 20, bottom: 40, left: 32 };
+const MARGIN = { top: 36, right: 36, bottom: AXIS_BOTTOM, left: 36 };
 const MIN_CHART_WIDTH = 960;
 
 function SidePanel({ report, edges, reportsById, onClose, onOpen }) {
@@ -221,21 +223,62 @@ export default function App() {
                 aria-label="Timeline of research associate reports by year"
                 onClick={() => setSelectedId(null)}
               >
+                <defs>
+                  <marker
+                    id="axis-arrow"
+                    viewBox="0 0 10 10"
+                    refX="8"
+                    refY="5"
+                    markerWidth="8"
+                    markerHeight="8"
+                    orient="auto"
+                    markerUnits="userSpaceOnUse"
+                  >
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#111" />
+                  </marker>
+                </defs>
                 {ticks.map((year) => {
                   const x = yearX(year, size.width, MARGIN, yearRange);
                   return (
-                    <g key={year}>
-                      <line
-                        className="grid"
-                        x1={x}
-                        x2={x}
-                        y1={MARGIN.top}
-                        y2={laidOut.height - MARGIN.bottom}
-                      />
-                      <text className="tick" x={x} y={laidOut.height - 14} textAnchor="middle">
-                        {year}
-                      </text>
-                    </g>
+                    <line
+                      key={`grid-${year}`}
+                      className="grid"
+                      x1={x}
+                      x2={x}
+                      y1={MARGIN.top}
+                      y2={laidOut.height - MARGIN.bottom}
+                    />
+                  );
+                })}
+                <line
+                  className="axis-line"
+                  x1={AXIS_PAD}
+                  y1={laidOut.height - MARGIN.bottom}
+                  x2={AXIS_PAD}
+                  y2={AXIS_PAD}
+                  markerEnd="url(#axis-arrow)"
+                />
+                <line
+                  className="axis-line"
+                  x1={AXIS_PAD}
+                  y1={laidOut.height - MARGIN.bottom}
+                  x2={size.width - AXIS_PAD}
+                  y2={laidOut.height - MARGIN.bottom}
+                  markerEnd="url(#axis-arrow)"
+                />
+                {ticks.map((year) => {
+                  const x = yearX(year, size.width, MARGIN, yearRange);
+                  return (
+                    <text
+                      key={`tick-${year}`}
+                      className="tick"
+                      x={x}
+                      y={laidOut.height - AXIS_PAD}
+                      textAnchor="middle"
+                      dominantBaseline="text-after-edge"
+                    >
+                      {year}
+                    </text>
                   );
                 })}
 
