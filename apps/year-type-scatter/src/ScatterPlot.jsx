@@ -3,8 +3,8 @@ import { Y_BANDS, clusterAriaLabel } from "./mapReports.js";
 
 const LEFT = 168;
 const RIGHT = 40;
-const TOP = 24;
-const BOTTOM = 32;
+const TOP = 28;
+const BOTTOM = 28;
 const PX_PER_YEAR = 48;
 const MIN_INNER_FLOOR = 692;
 
@@ -45,10 +45,11 @@ function xForYear(year, yearMin, yearMax, layout) {
 
 function yForBand(yBand, layout) {
   const n = Y_BANDS.length;
-  const edge = 20;
-  const usable = Math.max(layout.innerHeight - edge * 2, 1);
-  const t = n <= 1 ? 0.5 : yBand / (n - 1);
-  return layout.top + edge + usable * (1 - t);
+  const top = layout.top;
+  const bottom = layout.originY - 16;
+  if (n <= 1) return (top + bottom) / 2;
+  const t = yBand / (n - 1);
+  return bottom - t * (bottom - top);
 }
 
 function usePlotSize() {
@@ -74,11 +75,13 @@ function usePlotSize() {
     };
 
     read();
+    const raf = requestAnimationFrame(read);
     const observer = new ResizeObserver(read);
     observer.observe(frame);
     observer.observe(scroll);
     window.addEventListener("resize", read);
     return () => {
+      cancelAnimationFrame(raf);
       observer.disconnect();
       window.removeEventListener("resize", read);
     };
@@ -142,7 +145,7 @@ export default function ScatterPlot({
             viewBox={`0 0 ${LEFT} ${layout.height}`}
             overflow="visible"
             aria-hidden="true"
-            style={{ width: LEFT, height: "100%", aspectRatio: "auto" }}
+            style={{ width: LEFT, height: layout.height }}
           >
             <defs>
               <AxisArrowMarker id="axis-arrow-y" />
@@ -186,6 +189,10 @@ export default function ScatterPlot({
         }
       >
         {ready ? (
+          <div
+            className="scatter-surface"
+            style={{ width: layout.plotWidth, height: layout.height }}
+          >
           <svg
             className="scatter-plot"
             width={layout.plotWidth}
@@ -194,11 +201,7 @@ export default function ScatterPlot({
             preserveAspectRatio="none"
             overflow="visible"
             aria-labelledby="scatter-title scatter-desc"
-            style={{
-              width: layout.plotWidth,
-              height: "100%",
-              aspectRatio: "auto",
-            }}
+            style={{ width: layout.plotWidth, height: layout.height }}
           >
             <title id="scatter-title">
               HHCD reports by year and project type
@@ -284,6 +287,7 @@ export default function ScatterPlot({
               );
             })}
           </svg>
+          </div>
         ) : null}
       </div>
     </div>

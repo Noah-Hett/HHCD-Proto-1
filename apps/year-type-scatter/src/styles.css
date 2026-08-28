@@ -4,6 +4,7 @@ html,
 body,
 #root {
   height: 100%;
+  height: 100dvh;
 }
 
 .shell-fill .shell-main {
@@ -21,6 +22,7 @@ body,
   min-height: 0;
   height: 100%;
   overflow: hidden;
+  background: var(--bg);
 }
 
 .toolbar {
@@ -189,6 +191,7 @@ body,
   display: flex;
   flex: 1 1 auto;
   min-height: 0;
+  align-items: stretch;
 }
 
 .chart-wrap {
@@ -196,7 +199,7 @@ body,
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
-  padding: 0;
+  width: 100%;
   background: #fff;
 }
 
@@ -211,9 +214,10 @@ body,
 }
 
 .scatter-y-col {
+  position: relative;
   flex: 0 0 168px;
   width: 168px;
-  align-self: stretch;
+  height: 100%;
   z-index: 1;
   background: #fff;
 }
@@ -221,15 +225,14 @@ body,
 .scatter-y {
   display: block;
   width: 168px;
-  height: 100%;
   overflow: visible;
 }
 
 .scatter-scroll {
+  position: relative;
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
-  align-self: stretch;
   overflow-x: auto;
   overflow-y: hidden;
   overscroll-behavior-x: contain;
@@ -242,13 +245,12 @@ body,
   outline-offset: -2px;
 }
 
+.scatter-surface {
+  height: 100%;
+}
+
 .scatter-plot {
   display: block;
-  height: 100%;
-  max-height: 100%;
-  flex-shrink: 0;
-  aspect-ratio: auto;
-  background: #fff;
   overflow: visible;
 }
 
@@ -444,6 +446,12 @@ body,
 
   .chart-row {
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .chart-wrap {
+    flex: 1 1 auto;
+    min-height: 280px;
   }
 
   .panel {
