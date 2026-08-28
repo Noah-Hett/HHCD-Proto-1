@@ -10,6 +10,8 @@ export const AXIS_LABEL_GAP = 8;
 export const AXIS_HALF_BAND = YEAR_FONT_SIZE / 2 + AXIS_LABEL_GAP;
 /** Distance from the axis to the first report-row centre. */
 export const FIRST_ROW_OFFSET = AXIS_HALF_BAND + NODE_RADIUS;
+/** Half-width of a four-digit year label, including the halo stroke. */
+export const LABEL_HALF_WIDTH = YEAR_FONT_SIZE * 1.6;
 
 export function yearX(year, width, margin, yearRange) {
   const span = yearRange.max - yearRange.min || 1;
@@ -194,26 +196,54 @@ function sortBlocks(blocks, side, neighbors, byId) {
   );
 }
 
-function assignSides(columns, years) {
-  const sides = new Map();
+function graphComponents(nodes, edges) {
+  const adj = new Map(nodes.map((node) => [node.id, []]));
+  for (const edge of edges) {
+    if (!adj.has(edge.source) || !adj.has(edge.target)) continue;
+    adj.get(edge.source).push(edge.target);
+    adj.get(edge.target).push(edge.source);
+  }
+  const seen = new Set();
+  const components = [];
+  for (const node of nodes) {
+    if (seen.has(node.id)) continue;
+    const stack = [node.id];
+    seen.add(node.id);
+    const members = [];
+    while (stack.length) {
+      const id = stack.pop();
+      members.push(id);
+      for (const next of adj.get(id) ?? []) {
+        if (seen.has(next)) continue;
+        seen.add(next);
+        stack.push(next);
+      }
+    }
+    components.push(members);
+  }
+  components.sort((left, right) => right.length - left.length);
+  return components;
+}
+
+function assignSides(columns, years, nodes, edges) {
+  const nodeSide = new Map();
   let globalAbove = 0;
   let globalBelow = 0;
+  for (const members of graphComponents(nodes, edges)) {
+    const side = globalAbove <= globalBelow ? -1 : 1;
+    for (const id of members) nodeSide.set(id, side);
+    if (side < 0) globalAbove += members.length;
+    else globalBelow += members.length;
+  }
+
+  const sides = new Map();
   for (const year of years) {
     const above = [];
     const below = [];
-    let localAbove = 0;
-    let localBelow = 0;
     for (const block of columns.get(year)) {
-      if (globalAbove + localAbove <= globalBelow + localBelow) {
-        above.push(block);
-        localAbove += block.length;
-      } else {
-        below.push(block);
-        localBelow += block.length;
-      }
+      if ((nodeSide.get(block[0].id) ?? -1) < 0) above.push(block);
+      else below.push(block);
     }
-    globalAbove += localAbove;
-    globalBelow += localBelow;
     sides.set(year, { above, below });
   }
   return sides;
@@ -272,7 +302,7 @@ export function layoutGraph(graph, { width, height: stageHeight = 0, margin, yea
     columns.set(year, connectedBlocks(colNodes, edges));
   }
 
-  const sides = assignSides(columns, years);
+  const sides = assignSides(columns, years, nodes, edges);
   const gap = MIN_GAP;
   const axisLocal = 0;
   const padTop = margin.top ?? 0;
@@ -400,6 +430,51 @@ export function lineNodeCollisions(nodes, edges, clearance = LINE_CLEARANCE) {
       if (node.id === a.id || node.id === b.id) continue;
       const dist = distPointToEdge(node, a, b, edge.curve);
       if (dist < clearance - 0.05) hits.push([edge.id, node.id, dist]);
+    }
+  }
+  return hits;
+}
+
+function sampleEdge(a, b, curve, steps = 40) {
+  const points = [];
+  for (let i = 0; i <= steps; i += 1) {
+    const t = i / steps;
+    points.push(curve ? bezierPoint(a, b, curve, t) : {
+      x: a.x + (b.x - a.x) * t,
+      y: a.y + (b.y - a.y) * t,
+    });
+  }
+  return points;
+}
+
+export function labelLineCollisions(
+  nodes,
+  edges,
+  { width, margin, yearRange, axisY },
+  halfWidth = LABEL_HALF_WIDTH,
+  halfHeight = AXIS_HALF_BAND,
+) {
+  const byId = new Map(nodes.map((node) => [node.id, node]));
+  const years = [];
+  for (let year = yearRange.min; year <= yearRange.max; year += 1) years.push(year);
+  const labels = years.map((year) => ({
+    year,
+    x: yearX(year, width, margin, yearRange),
+  }));
+  const hits = [];
+  for (const edge of edges) {
+    const a = byId.get(edge.source);
+    const b = byId.get(edge.target);
+    if (!a || !b) continue;
+    for (const point of sampleEdge(a, b, edge.curve)) {
+      const hit = labels.find(
+        (label) =>
+          Math.abs(point.x - label.x) < halfWidth && Math.abs(point.y - axisY) < halfHeight,
+      );
+      if (hit) {
+        hits.push([edge.id, hit.year]);
+        break;
+      }
     }
   }
   return hits;

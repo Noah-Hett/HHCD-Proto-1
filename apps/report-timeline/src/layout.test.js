@@ -9,6 +9,7 @@ import {
   FIRST_ROW_OFFSET,
   LINE_CLEARANCE,
   MIN_GAP,
+  labelLineCollisions,
   layoutGraph,
   lineNodeCollisions,
   nodeCollisions,
@@ -45,6 +46,21 @@ test("places reports on both sides of a centred year axis without overlapping do
     assertOnGrid(nodes, axisY);
     assert.equal(nodeCollisions(nodes, MIN_GAP).length, 0);
     assert.equal(lineNodeCollisions(nodes, graph.edges, LINE_CLEARANCE).length, 0);
+    assert.equal(
+      labelLineCollisions(nodes, graph.edges, { width, margin, yearRange, axisY }).length,
+      0,
+    );
+
+    const byId = new Map(nodes.map((node) => [node.id, node]));
+    for (const edge of graph.edges) {
+      const a = byId.get(edge.source);
+      const b = byId.get(edge.target);
+      assert.equal(
+        Math.sign(a.y - axisY),
+        Math.sign(b.y - axisY),
+        `${edge.id} crosses the year axis`,
+      );
+    }
 
     const above = nodes.filter((node) => node.y < axisY);
     const below = nodes.filter((node) => node.y > axisY);
