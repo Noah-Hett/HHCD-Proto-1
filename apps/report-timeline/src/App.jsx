@@ -11,7 +11,6 @@ import {
   websiteUrls,
 } from "./graph.js";
 import {
-  AXIS_BOTTOM,
   AXIS_PAD,
   NODE_RADIUS,
   layoutGraph,
@@ -21,8 +20,9 @@ import {
   yearX,
 } from "./layout.js";
 
-const MARGIN = { top: 36, right: 36, bottom: AXIS_BOTTOM, left: 36 };
+const MARGIN = { top: 36, right: 36, bottom: 36, left: 36 };
 const MIN_CHART_WIDTH = 960;
+const TICK_LEN = 6;
 
 function SidePanel({ report, edges, reportsById, onClose, onOpen }) {
   const closeRef = useRef(null);
@@ -113,18 +113,21 @@ export default function App() {
     [],
   );
   const frameRef = useRef(null);
+  const scrollRef = useRef(null);
   const [width, setWidth] = useState(MIN_CHART_WIDTH);
+  const [stageHeight, setStageHeight] = useState(0);
   const [hoverId, setHoverId] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [tooltip, setTooltip] = useState(null);
 
   useEffect(() => {
-    const node = frameRef.current;
+    const node = scrollRef.current;
     if (!node) return undefined;
     const observer = new ResizeObserver((entries) => {
       const rect = entries[0]?.contentRect;
       if (!rect) return;
       setWidth(Math.max(rect.width, MIN_CHART_WIDTH));
+      setStageHeight(rect.height);
     });
     observer.observe(node);
     return () => observer.disconnect();
@@ -134,10 +137,11 @@ export default function App() {
     () =>
       layoutGraph(graph, {
         width,
+        height: stageHeight,
         margin: MARGIN,
         yearRange,
       }),
-    [graph, width],
+    [graph, width, stageHeight],
   );
 
   const nodesById = useMemo(
@@ -208,7 +212,7 @@ export default function App() {
         </div>
 
         <div className="stage">
-          <div className="chart-scroll">
+          <div ref={scrollRef} className="chart-scroll">
             <div ref={frameRef} className="chart-frame">
               <svg
                 className="chart"
@@ -249,32 +253,32 @@ export default function App() {
                 <line
                   className="axis-line"
                   x1={AXIS_PAD}
-                  y1={laidOut.height - MARGIN.bottom}
-                  x2={AXIS_PAD}
-                  y2={AXIS_PAD}
-                  markerEnd="url(#axis-arrow)"
-                />
-                <line
-                  className="axis-line"
-                  x1={AXIS_PAD}
-                  y1={laidOut.height - MARGIN.bottom}
+                  y1={laidOut.axisY}
                   x2={width - AXIS_PAD}
-                  y2={laidOut.height - MARGIN.bottom}
+                  y2={laidOut.axisY}
                   markerEnd="url(#axis-arrow)"
                 />
                 {ticks.map((year) => {
                   const x = yearX(year, width, MARGIN, yearRange);
                   return (
-                    <text
-                      key={`tick-${year}`}
-                      className="tick"
-                      x={x}
-                      y={laidOut.height - AXIS_PAD}
-                      textAnchor="middle"
-                      dominantBaseline="text-after-edge"
-                    >
-                      {year}
-                    </text>
+                    <g key={`tick-${year}`}>
+                      <line
+                        className="axis-tick"
+                        x1={x}
+                        x2={x}
+                        y1={laidOut.axisY - TICK_LEN}
+                        y2={laidOut.axisY + TICK_LEN}
+                      />
+                      <text
+                        className="tick"
+                        x={x}
+                        y={laidOut.axisY}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                      >
+                        {year}
+                      </text>
+                    </g>
                   );
                 })}
 

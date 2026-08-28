@@ -2,11 +2,16 @@ export const NODE_RADIUS = 7;
 export const MIN_GAP = NODE_RADIUS * 2 + 12;
 export const LINE_CLEARANCE = NODE_RADIUS + 6;
 export const CURVE_OFFSET = 12;
-/** Space above the vertical axis arrow, and below the year labels. */
+/** Horizontal inset for the year-axis arrow. */
 export const AXIS_PAD = 16;
 export const YEAR_FONT_SIZE = 11;
 export const AXIS_LABEL_GAP = 8;
-export const AXIS_BOTTOM = AXIS_PAD + YEAR_FONT_SIZE + AXIS_LABEL_GAP;
+/** Half the vertical band reserved for the centred year spine and labels. */
+export const AXIS_HALF_BAND = YEAR_FONT_SIZE / 2 + AXIS_LABEL_GAP;
+/** Half-width of a four-digit year label, including the halo stroke. */
+export const LABEL_HALF_WIDTH = YEAR_FONT_SIZE * 1.6;
+/** Distance from the axis to the first report-row centre. */
+export const FIRST_ROW_OFFSET = AXIS_HALF_BAND + CURVE_OFFSET + NODE_RADIUS;
 
 export function yearX(year, width, margin, yearRange) {
   const span = yearRange.max - yearRange.min || 1;
@@ -140,22 +145,22 @@ function neighborMap(edges) {
   return map;
 }
 
-function gridY(row, yMin, gap) {
-  return yMin + row * gap;
+function sideY(row, axisY, side, gap, offset = FIRST_ROW_OFFSET) {
+  return axisY + side * (offset + row * gap);
 }
 
-function rowHitsReservation(row, yMin, gap, reservations) {
-  const y = gridY(row, yMin, gap);
+function rowHitsReservation(row, axisY, side, gap, reservations) {
+  const y = sideY(row, axisY, side, gap);
   return reservations.some((res) => y > res.lo && y < res.hi);
 }
 
-function placeBlocks(blocks, yMin, gap, reservations = []) {
+function placeBlocksOutward(blocks, axisY, side, gap, reservations = []) {
   let row = 0;
   for (const block of blocks) {
     for (let step = 0; step < 200; step += 1) {
       let blocked = false;
       for (let i = 0; i < block.length; i += 1) {
-        if (rowHitsReservation(row + i, yMin, gap, reservations)) {
+        if (rowHitsReservation(row + i, axisY, side, gap, reservations)) {
           blocked = true;
           break;
         }
@@ -164,10 +169,88 @@ function placeBlocks(blocks, yMin, gap, reservations = []) {
       row += 1;
     }
     for (const node of block) {
-      node.y = gridY(row, yMin, gap);
+      node.y = sideY(row, axisY, side, gap);
+      node.side = side;
       row += 1;
     }
   }
+}
+
+function blockBary(block, neighbors, byId) {
+  const values = [];
+  for (const node of block) {
+    for (const id of neighbors.get(node.id) ?? []) {
+      const other = byId.get(id);
+      if (other && other.year !== node.year && other.y != null) values.push(other.y);
+    }
+  }
+  if (!values.length) {
+    return block.reduce((sum, node) => sum + (node.y ?? 0), 0) / block.length;
+  }
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function sortBlocks(blocks, side, neighbors, byId) {
+  blocks.sort(
+    (left, right) => side * (blockBary(left, neighbors, byId) - blockBary(right, neighbors, byId)),
+  );
+}
+
+function graphComponents(nodes, edges) {
+  const adj = new Map(nodes.map((node) => [node.id, []]));
+  for (const edge of edges) {
+    if (!adj.has(edge.source) || !adj.has(edge.target)) continue;
+    adj.get(edge.source).push(edge.target);
+    adj.get(edge.target).push(edge.source);
+  }
+  const seen = new Set();
+  const components = [];
+  for (const node of nodes) {
+    if (seen.has(node.id)) continue;
+    const stack = [node.id];
+    seen.add(node.id);
+    const members = [];
+    while (stack.length) {
+      const id = stack.pop();
+      members.push(id);
+      for (const next of adj.get(id) ?? []) {
+        if (seen.has(next)) continue;
+        seen.add(next);
+        stack.push(next);
+      }
+    }
+    components.push(members);
+  }
+  components.sort((left, right) => right.length - left.length);
+  return components;
+}
+
+function assignSides(columns, years, nodes, edges) {
+  const nodeSide = new Map();
+  let globalAbove = 0;
+  let globalBelow = 0;
+  for (const members of graphComponents(nodes, edges)) {
+    const side = globalAbove <= globalBelow ? -1 : 1;
+    for (const id of members) nodeSide.set(id, side);
+    if (side < 0) globalAbove += members.length;
+    else globalBelow += members.length;
+  }
+
+  const sides = new Map();
+  for (const year of years) {
+    const above = [];
+    const below = [];
+    for (const block of columns.get(year)) {
+      if ((nodeSide.get(block[0].id) ?? -1) < 0) above.push(block);
+      else below.push(block);
+    }
+    sides.set(year, { above, below });
+  }
+  return sides;
+}
+
+function axisReservation(axisY) {
+  return { lo: axisY - AXIS_HALF_BAND, hi: axisY + AXIS_HALF_BAND };
 }
 
 function yAtX(a, b, curve, x) {
@@ -206,7 +289,7 @@ function reservationsForYear(year, x, edges, byId) {
   return bands;
 }
 
-export function layoutGraph(graph, { width, margin, yearRange }) {
+export function layoutGraph(graph, { width, height: stageHeight = 0, margin, yearRange }) {
   const nodes = graph.nodes.map((node) => ({ ...node }));
   const edges = graph.edges;
   const byId = new Map(nodes.map((node) => [node.id, node]));
@@ -219,62 +302,67 @@ export function layoutGraph(graph, { width, margin, yearRange }) {
     columns.set(year, connectedBlocks(colNodes, edges));
   }
 
+  const sides = assignSides(columns, years, nodes, edges);
   const gap = MIN_GAP;
-  const yMin = margin.top + NODE_RADIUS;
+  const axisLocal = 0;
+  const padTop = margin.top ?? 0;
+  const padBottom = margin.bottom ?? 0;
 
   for (const node of nodes) {
     node.x = yearX(node.year, width, margin, yearRange);
     node.r = NODE_RADIUS;
   }
 
-  for (const blocks of columns.values()) {
-    placeBlocks(blocks, yMin, gap);
+  function reservationsAt(year) {
+    const x = yearX(year, width, margin, yearRange);
+    return [axisReservation(axisLocal), ...reservationsForYear(year, x, edges, byId)];
+  }
+
+  function placeYear(year, { above, below }) {
+    const reservations = reservationsAt(year);
+    placeBlocksOutward(above, axisLocal, -1, gap, reservations);
+    placeBlocksOutward(below, axisLocal, 1, gap, reservations);
+  }
+
+  for (const [year, pair] of sides) {
+    placeYear(year, pair);
   }
 
   for (let pass = 0; pass < 12; pass += 1) {
-    for (const [year, blocks] of columns) {
-      const x = yearX(year, width, margin, yearRange);
+    for (const [year, pair] of sides) {
       if (pass < 8) {
-        blocks.sort((left, right) => {
-          const bary = (block) => {
-            const values = [];
-            for (const node of block) {
-              for (const id of neighbors.get(node.id) ?? []) {
-                const other = byId.get(id);
-                if (other && other.year !== node.year) values.push(other.y);
-              }
-            }
-            if (!values.length) {
-              return block.reduce((sum, node) => sum + node.y, 0) / block.length;
-            }
-            return values.reduce((sum, value) => sum + value, 0) / values.length;
-          };
-          return bary(left) - bary(right);
-        });
+        sortBlocks(pair.above, -1, neighbors, byId);
+        sortBlocks(pair.below, 1, neighbors, byId);
       }
-      const reservations = reservationsForYear(year, x, edges, byId);
-      placeBlocks(blocks, yMin, gap, reservations);
+      placeYear(year, pair);
     }
   }
 
   for (let settle = 0; settle < 16; settle += 1) {
-    for (const [year, blocks] of columns) {
-      const x = yearX(year, width, margin, yearRange);
-      placeBlocks(blocks, yMin, gap, reservationsForYear(year, x, edges, byId));
+    for (const [year, pair] of sides) {
+      placeYear(year, pair);
     }
   }
 
   for (let pass = 0; pass < 8; pass += 1) {
-    for (const blocks of columns.values()) {
-      repairColumn(blocks, edges, byId, yMin, gap);
+    for (const { above, below } of sides.values()) {
+      repairColumnSide(above, edges, byId, axisLocal, -1, gap);
+      repairColumnSide(below, edges, byId, axisLocal, 1, gap);
     }
   }
 
-  let maxY = -Infinity;
-  for (const node of nodes) maxY = Math.max(maxY, node.y);
-  const finalHeight = maxY + NODE_RADIUS + 12 + margin.bottom;
+  let maxAbs = FIRST_ROW_OFFSET + NODE_RADIUS;
+  for (const node of nodes) {
+    maxAbs = Math.max(maxAbs, Math.abs(node.y) + NODE_RADIUS);
+  }
+  const half = maxAbs + Math.max(padTop, padBottom);
+  const finalHeight = Math.max(stageHeight || 0, half * 2);
+  const axisY = finalHeight / 2;
+  for (const node of nodes) {
+    node.y += axisY;
+  }
 
-  return { nodes, height: finalHeight };
+  return { nodes, height: finalHeight, axisY };
 }
 
 function blockHitsLines(block, edges, byId) {
@@ -290,14 +378,19 @@ function blockHitsLines(block, edges, byId) {
   return false;
 }
 
-function repairColumn(blocks, edges, byId, yMin, gap) {
-  const ordered = [...blocks].sort((left, right) => left[0].y - right[0].y);
+function repairColumnSide(blocks, edges, byId, axisY, side, gap) {
+  const ordered = [...blocks].sort(
+    (left, right) => Math.abs(left[0].y - axisY) - Math.abs(right[0].y - axisY),
+  );
   let minRow = 0;
   for (const block of ordered) {
-    let row = Math.max(minRow, Math.round((block[0].y - yMin) / gap));
+    let row = Math.max(
+      minRow,
+      Math.round((Math.abs(block[0].y - axisY) - FIRST_ROW_OFFSET) / gap),
+    );
     for (let guard = 0; guard < 200; guard += 1) {
       for (let i = 0; i < block.length; i += 1) {
-        block[i].y = gridY(row + i, yMin, gap);
+        block[i].y = sideY(row + i, axisY, side, gap);
       }
       if (row >= minRow && !blockHitsLines(block, edges, byId)) break;
       row += 1;
@@ -337,6 +430,51 @@ export function lineNodeCollisions(nodes, edges, clearance = LINE_CLEARANCE) {
       if (node.id === a.id || node.id === b.id) continue;
       const dist = distPointToEdge(node, a, b, edge.curve);
       if (dist < clearance - 0.05) hits.push([edge.id, node.id, dist]);
+    }
+  }
+  return hits;
+}
+
+function sampleEdge(a, b, curve, steps = 40) {
+  const points = [];
+  for (let i = 0; i <= steps; i += 1) {
+    const t = i / steps;
+    points.push(curve ? bezierPoint(a, b, curve, t) : {
+      x: a.x + (b.x - a.x) * t,
+      y: a.y + (b.y - a.y) * t,
+    });
+  }
+  return points;
+}
+
+export function labelLineCollisions(
+  nodes,
+  edges,
+  { width, margin, yearRange, axisY },
+  halfWidth = LABEL_HALF_WIDTH,
+  halfHeight = AXIS_HALF_BAND + 4,
+) {
+  const byId = new Map(nodes.map((node) => [node.id, node]));
+  const years = [];
+  for (let year = yearRange.min; year <= yearRange.max; year += 1) years.push(year);
+  const labels = years.map((year) => ({
+    year,
+    x: yearX(year, width, margin, yearRange),
+  }));
+  const hits = [];
+  for (const edge of edges) {
+    const a = byId.get(edge.source);
+    const b = byId.get(edge.target);
+    if (!a || !b) continue;
+    for (const point of sampleEdge(a, b, edge.curve)) {
+      const hit = labels.find(
+        (label) =>
+          Math.abs(point.x - label.x) < halfWidth && Math.abs(point.y - axisY) < halfHeight,
+      );
+      if (hit) {
+        hits.push([edge.id, hit.year]);
+        break;
+      }
     }
   }
   return hits;
