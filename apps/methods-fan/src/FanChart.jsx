@@ -138,7 +138,7 @@ function applyFocus(svgEl, focus, nodeById, categories) {
     hotNodes.has(d.id),
   );
   svg
-    .selectAll(".fan-band, .fan-wedge, .cat-label")
+    .selectAll(".fan-band, .fan-wedge, .fan-pop, .cat-label")
     .classed("is-hot", (d) => hotCats.has(d.id));
 }
 
@@ -204,12 +204,13 @@ export function FanChart({
       .attr("id", "methods-fan-desc")
       .text(
         zoomed
-          ? `Zoomed into ${zoomedCategory}. Category nodes stay on the middle arc. This category’s reports sit on the outer arc. Hover a report to read its title. Escape returns to all categories.`
+          ? `Zoomed into ${zoomedCategory}. Methods stay on the inner ring and all category nodes stay on the middle arc. This category’s reports fan out in a wider pop-out above it. Hover a report to read its title. Escape returns to all categories.`
           : "Inner marks are research methods, each with its own symbol. Names live in the method key; hover a mark to read it on the fan. Outer nodes are categories. A curve from a method to a category means reports in that category used the method. Activate a category to zoom in.",
       );
 
     const root = svg.append("g").attr("class", "fan-root");
     const wedgesG = root.append("g").attr("class", "fan-wedges");
+    const popsG = root.append("g").attr("class", "fan-pops");
     const guidesG = root.append("g").attr("class", "fan-guides");
     const bandsG = root.append("g").attr("class", "fan-bands");
     const catLabelsG = root.append("g").attr("class", "fan-cat-labels");
@@ -280,7 +281,7 @@ export function FanChart({
         g.append("circle")
           .attr("class", "dot")
           .attr("r", (d) => d.r)
-          .attr("fill", (d) => (d.kind === "method" ? "#f4efe6" : d.color));
+          .attr("fill", (d) => (d.kind === "method" ? "#171717" : d.color));
         g.append("path").attr("class", "method-mark").attr("aria-hidden", "true");
         g.append("title");
         g.append("text")
@@ -477,27 +478,57 @@ export function FanChart({
     svg.on("pointerleave", () => onFocusRef.current?.(null));
 
     function drawStatic() {
-      const { cx, cy, innerR, categoryR, projectR, bandInner, bandOuter, angleStart, angleEnd } =
-        metrics;
+      const {
+        cx,
+        cy,
+        innerR,
+        categoryR,
+        projectR,
+        popInner,
+        popOuter,
+        bandInner,
+        bandOuter,
+        angleStart,
+        angleEnd,
+      } = metrics;
       const bandSource = graph.categories;
+      const focused = graph.categories.find((item) => item.id === zoomedCategory);
+      const wedgeSource = zoomed && focused ? [focused] : bandSource;
       const wedgeArc = d3arc()
-        .innerRadius(zoomed ? categoryR * 0.84 : innerR * 0.55)
-        .outerRadius(bandOuter)
-        .startAngle((d) => mathToArc(d.angle0))
-        .endAngle((d) => mathToArc(d.angle1));
+        .innerRadius(innerR * 0.42)
+        .outerRadius((d) =>
+          d.id === zoomedCategory ? (d.popOuter ?? popOuter) : bandOuter,
+        )
+        .startAngle((d) =>
+          mathToArc(
+            d.id === zoomedCategory && d.popA0 != null ? d.popA0 : d.angle0,
+          ),
+        )
+        .endAngle((d) =>
+          mathToArc(
+            d.id === zoomedCategory && d.popA1 != null ? d.popA1 : d.angle1,
+          ),
+        );
       const bandArc = d3arc()
         .innerRadius(bandInner)
         .outerRadius(bandOuter)
         .startAngle((d) => mathToArc(d.angle0))
         .endAngle((d) => mathToArc(d.angle1))
         .cornerRadius(2);
+      const popArc = d3arc()
+        .innerRadius(popInner)
+        .outerRadius(popOuter)
+        .startAngle((d) => mathToArc(d.popA0))
+        .endAngle((d) => mathToArc(d.popA1))
+        .cornerRadius(10);
 
       wedgesG.attr("transform", `translate(${cx},${cy})`);
+      popsG.attr("transform", `translate(${cx},${cy})`);
       bandsG.attr("transform", `translate(${cx},${cy})`);
 
       wedgesG
         .selectAll("path")
-        .data(bandSource, (d) => d.id)
+        .data(wedgeSource, (d) => d.id)
         .join("path")
         .attr("class", "fan-wedge")
         .classed("is-current", (d) => d.id === zoomedCategory)
@@ -510,6 +541,16 @@ export function FanChart({
           onZoomRef.current?.(d.id === zoomedCategory ? null : d.id);
         });
 
+      popsG
+        .selectAll("path")
+        .data(focused?.popA0 != null ? [focused] : [], (d) => d.id)
+        .join("path")
+        .attr("class", "fan-pop")
+        .classed("is-current", true)
+        .attr("d", popArc)
+        .attr("fill", (d) => d.color)
+        .attr("aria-hidden", "true");
+
       bandsG
         .selectAll("path")
         .data(bandSource, (d) => d.id)
@@ -520,22 +561,27 @@ export function FanChart({
         .attr("fill", (d) => d.color)
         .attr("aria-hidden", "true");
 
-      const guideData = zoomed
-        ? [
-            { id: "inner", r: innerR },
-            { id: "mid", r: categoryR },
-            { id: "outer", r: projectR },
-          ]
-        : [
-            { id: "inner", r: innerR },
-            { id: "outer", r: categoryR },
-          ];
+      const guideData = [
+        { id: "inner", r: innerR },
+        { id: "mid", r: categoryR },
+      ];
       guidesG
         .selectAll("path.guide")
         .data(guideData)
         .join("path")
         .attr("class", (d) => `guide guide-${d.id}`)
         .attr("d", (d) => ringPath(cx, cy, d.r, angleStart, angleEnd));
+
+      guidesG
+        .selectAll("path.guide-pop")
+        .data(
+          focused?.popA0 != null
+            ? [{ id: "pop", r: projectR, a0: focused.popA0, a1: focused.popA1 }]
+            : [],
+        )
+        .join("path")
+        .attr("class", "guide guide-pop")
+        .attr("d", (d) => ringPath(cx, cy, d.r, d.a0, d.a1));
 
       catLabelsG.selectAll("text.cat-band-label").remove();
     }
@@ -599,10 +645,11 @@ export function FanChart({
         })
         .attr("transform", (d) => {
           const a = Math.atan2(d.y - cy, d.x - cx);
+          const extra = ((d.outerLines ?? 1) - 1) * 6;
           const outward =
             d.kind === "project"
-              ? d.ring - d.r - 12 - ((d.outerLines ?? 1) - 1) * 6
-              : d.ring + d.r + 16 + ((d.outerLines ?? 1) - 1) * 6;
+              ? d.ring + d.r + 16 + extra
+              : metrics.bandOuter + 14 + extra;
           const p = polar(cx, cy, outward, a);
           return `translate(${p.x},${p.y})`;
         });

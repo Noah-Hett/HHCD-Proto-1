@@ -59,16 +59,18 @@
   pointer-events: auto;
 }
 
-.fan.is-zoomed .fan-wedge:not(.is-current) {
-  fill-opacity: 0.03;
-}
-
 .fan.is-zoomed .fan-wedge.is-current {
-  fill-opacity: 0.12;
+  fill-opacity: 0.1;
 }
 
 .fan.is-zoomed .fan-band:not(.is-current) {
-  fill-opacity: 0.32;
+  fill-opacity: 0.28;
+}
+
+.fan-pop {
+  fill-opacity: 0.16;
+  stroke: none;
+  pointer-events: none;
 }
 
 .fan-band {
@@ -138,8 +140,9 @@
 }
 
 .fan-node.is-method .dot {
-  fill: #f4efe6;
-  stroke-width: 1.6;
+  fill: #171717;
+  stroke: #111;
+  stroke-width: 1.4;
 }
 
 .fan-node:not(.is-method) .method-mark {
@@ -147,13 +150,13 @@
 }
 
 .method-mark.is-fill {
-  fill: #111;
+  fill: #f4efe6;
   stroke: none;
 }
 
 .method-mark.is-stroke {
   fill: none;
-  stroke: #111;
+  stroke: #f4efe6;
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -213,13 +216,15 @@
 }
 
 .fan.is-zoomed .outer-label.is-category {
-  font-size: 12px;
-  font-weight: 600;
+  display: none;
 }
 
-.fan.is-zoomed .fan-node.is-category:not(.is-current),
-.fan.is-zoomed .outer-label.is-category:not(.is-current) {
+.fan.is-zoomed .fan-node.is-category:not(.is-current) {
   opacity: 0.38;
+}
+
+.fan.is-zoomed .guide-pop {
+  stroke-opacity: 0.18;
 }
 
 .fan.is-zoomed .outer-label.is-project {
@@ -260,6 +265,10 @@
   opacity: 0.28;
 }
 
+.fan.is-focusing .fan-pop {
+  opacity: 1;
+}
+
 .fan.is-focusing .method-label,
 .fan.is-focusing .cat-label,
 .fan.is-focusing .outer-label.is-hot,
@@ -269,7 +278,9 @@
 .fan.is-focusing .fan-band.is-hot,
 .fan.is-focusing .fan-band.is-current,
 .fan.is-focusing .fan-wedge.is-hot,
-.fan.is-focusing .fan-wedge.is-current {
+.fan.is-focusing .fan-wedge.is-current,
+.fan.is-focusing .fan-pop.is-hot,
+.fan.is-focusing .fan-pop.is-current {
   opacity: 1;
 }
 
@@ -576,7 +587,8 @@
   .fan-ribbon,
   .fan-node,
   .fan-band,
-  .fan-wedge {
+  .fan-wedge,
+  .fan-pop {
     transition: none;
   }
 }
@@ -595,16 +607,26 @@
   }
 
   .fan-node.is-method .dot {
-    fill: Canvas;
-    stroke: CanvasText;
+    fill: CanvasText;
+    stroke: Canvas;
   }
 
-  .method-mark.is-fill,
+  .method-mark.is-fill {
+    fill: Canvas;
+  }
+
   .method-glyph.is-fill path {
     fill: CanvasText;
   }
 
-  .method-mark.is-stroke,
+  .fan-pop {
+    fill: GrayText;
+  }
+
+  .method-mark.is-stroke {
+    stroke: Canvas;
+  }
+
   .method-glyph.is-stroke path {
     stroke: CanvasText;
   }

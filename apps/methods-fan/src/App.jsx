@@ -314,8 +314,8 @@ function Detail({ detail, graph, onSelect, zoomedCategory }) {
         <h1>{detail.category.label}</h1>
         <p className="lede">
           {zoomedCategory === detail.category.id
-            ? `${detail.connected.length} reports on the outer arc. Hover a report to read its title.`
-            : `${detail.connected.length} reports. Activate to zoom in and scatter them around the fan.`}
+            ? `${detail.connected.length} reports in a pop-out above this theme. Hover a report to read its title.`
+            : `${detail.connected.length} reports. Activate to fan them out above this theme.`}
         </p>
         <ul className="hits">
           {detail.connected.map((project) => (
@@ -342,7 +342,7 @@ function Detail({ detail, graph, onSelect, zoomedCategory }) {
       <h1>{zoomedCategory ? "This category" : "How to read this"}</h1>
       <p className="lede">
         {zoomedCategory
-          ? "Inner marks are the methods used here. Category nodes stay on the middle arc — the focused theme stays in place. Reports sit further out; hover one to read its title."
+          ? "Methods stay on the inner ring. All five category nodes stay on the middle arc — the focused theme stays in place. Its reports fan out in a wider halo above it; hover a report to read its title."
           : "Inner marks are research methods: each icon stands for a method (speech bubble for interviews, eye for observation, and so on). See the key if a label is tight. Outer nodes are categories, sized by how many reports they hold. A curve means that method was used in that category. Line texture also marks category, not colour alone."}
       </p>
       <p className="body">

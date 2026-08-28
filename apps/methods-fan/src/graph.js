@@ -165,12 +165,7 @@ export function buildRibbons(graph) {
 export function nodesForView(graph, zoomedCategory) {
   if (!zoomedCategory) return [...graph.methods, ...graph.categories];
   const projects = graph.byCategory.get(zoomedCategory) ?? [];
-  const methodIds = new Set(projects.flatMap((project) => project.methodIds));
-  return [
-    ...graph.methods.filter((method) => methodIds.has(method.id)),
-    ...graph.categories,
-    ...projects,
-  ];
+  return [...graph.methods, ...graph.categories, ...projects];
 }
 
 export function linksForView(graph, zoomedCategory) {
@@ -200,11 +195,13 @@ function baseMetrics(width, height) {
   const cx = width / 2;
   const cy = height - padBottom;
   const outerR = Math.max(72, Math.min(cx - padX, cy - padTop));
-  const innerR = outerR * 0.36;
-  const categoryR = outerR * 0.62;
+  const innerR = outerR * 0.32;
+  const categoryR = outerR * 0.52;
+  const bandInner = outerR * 0.62;
+  const bandOuter = outerR * 0.7;
   const projectR = outerR * 0.86;
-  const bandInner = outerR * 0.92;
-  const bandOuter = outerR * 0.97;
+  const popInner = outerR * 0.76;
+  const popOuter = outerR * 0.97;
   const angleStart = -Math.PI + 0.18;
   const angleEnd = -0.18;
   const scale = Math.max(0.72, Math.min(1.15, outerR / 280));
@@ -214,6 +211,8 @@ function baseMetrics(width, height) {
     innerR,
     categoryR,
     projectR,
+    popInner,
+    popOuter,
     bandInner,
     bandOuter,
     angleStart,
@@ -227,6 +226,10 @@ function baseMetrics(width, height) {
 export function layoutGraph(graph, width, height, zoomedCategory = null) {
   const metrics = baseMetrics(width, height);
   placeCategorySectors(graph, metrics);
+  for (const category of graph.categories) {
+    category.popA0 = null;
+    category.popA1 = null;
+  }
   if (zoomedCategory) {
     placeZoomed(graph, metrics, zoomedCategory);
   } else {
@@ -292,52 +295,82 @@ function placeCategoryNodes(graph, metrics) {
   }
 }
 
-function placeZoomed(graph, metrics, categoryId) {
-  const { cx, cy, projectR, angleStart, span, scale } = metrics;
-  placeCategoryNodes(graph, metrics);
+function expandSector(mid, width, a0, a1) {
+  let p0 = mid - width / 2;
+  let p1 = mid + width / 2;
+  if (p0 < a0) {
+    p1 = Math.min(a1, p1 + (a0 - p0));
+    p0 = a0;
+  }
+  if (p1 > a1) {
+    p0 = Math.max(a0, p0 - (p1 - a1));
+    p1 = a1;
+  }
+  return [p0, p1];
+}
 
+function placeZoomed(graph, metrics, categoryId) {
+  placeOverview(graph, metrics);
+
+  const {
+    cx,
+    cy,
+    projectR,
+    popInner,
+    popOuter,
+    angleStart,
+    angleEnd,
+    span,
+    scale,
+  } = metrics;
+  const category = graph.categories.find((item) => item.id === categoryId);
   const projects = graph.byCategory.get(categoryId) ?? [];
-  const inset = 0.1;
+  if (!category) return;
+
+  const catW = category.angle1 - category.angle0;
+  const popW = Math.min(
+    span * 0.58,
+    Math.max(0.82, catW * 2.55, projects.length * 0.052),
+  );
+  const [popA0, popA1] = expandSector(
+    category.mid,
+    popW,
+    angleStart,
+    angleEnd,
+  );
+  category.popA0 = popA0;
+  category.popA1 = popA1;
+  category.popInner = popInner;
+  category.popOuter = popOuter;
+  metrics.popA0 = popA0;
+  metrics.popA1 = popA1;
+
+  const inset = Math.min(0.09, (popA1 - popA0) * 0.1);
   projects.forEach((project, index) => {
     const t = projects.length === 1 ? 0.5 : index / (projects.length - 1);
-    project.angle = angleStart + inset + t * (span - inset * 2);
-    project.angleMin = angleStart;
-    project.angleMax = metrics.angleEnd;
+    project.angle = popA0 + inset + t * (popA1 - popA0 - inset * 2);
+    project.angleMin = popA0 + inset * 0.4;
+    project.angleMax = popA1 - inset * 0.4;
     project.ring = projectR;
-    project.r = 5.4 * scale;
+    project.r = 5.8 * scale;
     project.x = cx + project.ring * Math.cos(project.angle);
     project.y = cy + project.ring * Math.sin(project.angle);
   });
 
-  const methodIds = new Set(projects.flatMap((project) => project.methodIds));
-  const methods = graph.methods.filter((method) => methodIds.has(method.id));
   const localCount = new Map();
   for (const project of projects) {
     for (const id of project.methodIds) {
       localCount.set(id, (localCount.get(id) ?? 0) + 1);
     }
   }
-  const maxLocal = Math.max(...localCount.values(), 1);
-  methods.forEach((method) => {
-    const connected = projects.filter((project) =>
-      project.methodIds.includes(method.id),
-    );
-    method.bary =
-      connected.reduce((sum, project) => sum + project.angle, 0) /
-      Math.max(connected.length, 1);
+  for (const method of graph.methods) {
     method.localCount = localCount.get(method.id) ?? 0;
-  });
-  methods.sort((a, b) => a.bary - b.bary || a.label.localeCompare(b.label));
-  placeMethodNodes(
-    methods,
-    metrics,
-    (method) => (method.localCount || 1) / maxLocal,
-  );
+  }
 }
 
 function placeMethodNodes(methods, metrics, sizeOf) {
   const { cx, cy, innerR, outerR, angleStart, span, scale } = metrics;
-  const ringGap = Math.min(52, outerR * 0.12);
+  const ringGap = Math.min(28, outerR * 0.065);
   const start = angleStart + 0.14;
   const methodSpan = span - 0.28;
   methods.forEach((method, index) => {
